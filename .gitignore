@@ -211,3 +211,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+docs/
+.cursorrules
+memory-bank/
