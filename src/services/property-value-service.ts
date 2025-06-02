@@ -1,62 +1,30 @@
-import { z } from 'zod';
-
-import { ApiResponse, UUPropertyValueDTO, UUID, QueryParams } from '../types';
-import { httpClient } from '../core/http-client';
-import { validate } from '../validation/validate';
-import { propertyValueDTOSchema } from '../validation/schemas';
-import { logError } from '../core/logger';
+import { ApiResponse, UUPropertyValueDTO, UUID, QueryParams } from '@/types';
+import { httpClient, logError } from '@/core';
+import {
+  validateQueryParams,
+  validateUuid,
+  validate,
+  propertyValueDTOSchema
+} from '@/validation';
 
 const basePath = '/api/UUPropertyValue';
 
 /**
- * Get all property values
+ * Get property values with optional filtering
+ * This unified function handles all property value retrieval scenarios
  *
  * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of property values
+ * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @returns List of property values matching the criteria, or single property value if uuid is provided
  */
-export const getAllPropertyValues =
+export const getPropertyValues =
   (client = httpClient) =>
   async (params?: QueryParams): Promise<ApiResponse<UUPropertyValueDTO[]>> => {
     try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUPropertyValueDTO[]>(basePath, validatedParams);
+      const cleanParams = validateQueryParams(params);
+      return await client.get<UUPropertyValueDTO[]>(basePath, cleanParams);
     } catch (error: any) {
-      logError('getAllPropertyValues', error);
-      throw error;
-    }
-  };
-
-/**
- * Get property values owned by the current user
- *
- * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of property values owned by the current user
- */
-export const getOwnPropertyValues =
-  (client = httpClient) =>
-  async (params?: QueryParams): Promise<ApiResponse<UUPropertyValueDTO[]>> => {
-    try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUPropertyValueDTO[]>(
-        `${basePath}/own`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getOwnPropertyValues', error);
+      logError('getPropertyValues', error);
       throw error;
     }
   };
@@ -91,39 +59,6 @@ export const createOrUpdatePropertyValue =
   };
 
 /**
- * Get a property value by UUID
- *
- * @param client - HTTP client instance
- * @param uuid - The UUID of the property value to get
- * @param params - Query parameters
- * @returns The requested property value or null if not found
- */
-export const getPropertyValueByUuid =
-  (client = httpClient) =>
-  async (
-    uuid: UUID,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUPropertyValueDTO | null>> => {
-    try {
-      // Validate UUID and params
-      const validatedUuid = validate(z.string().uuid(), uuid);
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUPropertyValueDTO | null>(
-        `${basePath}/${validatedUuid}`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getPropertyValueByUuid', error);
-      throw error;
-    }
-  };
-
-/**
  * Soft delete a property value
  *
  * @param client - HTTP client instance
@@ -135,7 +70,7 @@ export const softDeletePropertyValue =
   async (uuid: UUID): Promise<ApiResponse<any>> => {
     try {
       // Validate UUID
-      const validatedUuid = validate(z.string().uuid(), uuid);
+      const validatedUuid = validateUuid(uuid);
 
       return await client.delete<any>(`${basePath}/${validatedUuid}`);
     } catch (error: any) {

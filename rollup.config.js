@@ -25,12 +25,14 @@ export default [
       {
         file: pkg.main,
         format: 'cjs',
-        sourcemap: true
+        sourcemap: true,
+        inlineDynamicImports: true
       },
       {
         file: pkg.module,
         format: 'esm',
-        sourcemap: true
+        sourcemap: true,
+        inlineDynamicImports: true
       }
     ],
     plugins: [
@@ -53,7 +55,16 @@ export default [
   {
     input: 'dist/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'es' }],
-    plugins: [dts()],
+    plugins: [
+      dts({
+        compilerOptions: {
+          baseUrl: '.',
+          paths: {
+            '@/*': ['src/*']
+          }
+        }
+      })
+    ],
     watch: false // Don't watch declaration files
   }
 ];

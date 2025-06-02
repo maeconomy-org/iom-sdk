@@ -1,7 +1,7 @@
 import * as https from 'https';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { ApiError, ApiResponse, IOBClientConfig } from '../types';
+import { ApiError, ApiResponse, IOBClientConfig } from '@/types';
 import { configureLogger, logHttp, logError } from './logger';
 
 /**
@@ -170,14 +170,18 @@ export const createHttpClient = (config: IOBClientConfig) => {
    * Makes a DELETE request to the specified endpoint
    *
    * @param url - The endpoint URL
+   * @param data - Optional request body data
    * @returns Promise with the response data
    */
-  const del = async <T>(url: string): Promise<ApiResponse<T>> => {
+  const del = async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
     try {
       // Log the request
       logHttp('DELETE', url);
 
-      const response: AxiosResponse = await client.delete(url);
+      const response: AxiosResponse = await client.delete(
+        url,
+        data ? { data } : undefined
+      );
 
       // Log the response
       logHttp('DELETE', url, response.status);

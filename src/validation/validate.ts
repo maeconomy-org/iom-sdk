@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { logError } from '../core/logger';
+import { logError } from '@/core';
 
 /**
  * Validation error class for handling Zod validation errors

@@ -1,16 +1,16 @@
+import { z } from 'zod';
 import {
   ApiResponse,
   Predicate,
   UUPropertyValueDTO,
   UUID,
   QueryParams
-} from '../types';
-import { httpClient } from '../core/http-client';
-import * as propertyValueService from '../services/property-value-service';
-import * as statementService from '../services/statement-service';
-import * as uuidService from '../services/uuid-service';
-import { validate } from '../validation/validate';
-import { z } from 'zod';
+} from '@/types';
+import { httpClient } from '@/core';
+import { validate } from '@/validation';
+import * as uuidService from '@/services/uuid-service';
+import * as statementService from '@/services/statement-service';
+import * as propertyValueService from '@/services/property-value-service';
 
 /**
  * Set a value for a property
@@ -108,12 +108,15 @@ export const getValuesForProperty =
 
     for (const statement of statementsResponse.data) {
       const valueUuid = statement.object;
-      const valueResponse = await propertyValueService.getPropertyValueByUuid(
+      const valueResponse = await propertyValueService.getPropertyValues(
         client
-      )(valueUuid, params);
+      )({
+        uuid: valueUuid,
+        ...params
+      });
 
-      if (valueResponse.data) {
-        values.push(valueResponse.data);
+      if (valueResponse.data && valueResponse.data.length > 0) {
+        values.push(valueResponse.data[0]);
       }
     }
 

@@ -147,7 +147,7 @@ describe('HTTP Client', () => {
 
       const result = await client.delete<any>('/test/123');
 
-      expect(axiosInstance.delete).toHaveBeenCalledWith('/test/123');
+      expect(axiosInstance.delete).toHaveBeenCalledWith('/test/123', undefined);
       expect(result).toEqual({
         data: mockResponse.data,
         status: mockResponse.status,

@@ -19,7 +19,18 @@ export enum Predicate {
 
 // Common query parameters
 export interface QueryParams {
+  uuid?: UUID;
   softDeleted?: boolean;
+  createdBy?: string;
+}
+
+// Statement query parameters (based on UUStatementFindDTO from Swagger)
+export interface StatementQueryParams {
+  subject?: UUID;
+  predicate?: Predicate;
+  object?: UUID;
+  softDeleted?: boolean;
+  createdBy?: string;
 }
 
 // UUStatement Data Transfer Object
@@ -170,4 +181,140 @@ export interface ApiError {
   statusText: string;
   message: string;
   details?: any;
+}
+
+/**
+ * Auth response from mTLS authentication endpoint
+ * Based on typical Spring Security UserDetails structure
+ */
+export interface AuthResponse {
+  username: string;
+  authenticated: boolean;
+  authorities: string[];
+  principal?: {
+    username: string;
+    enabled: boolean;
+    accountNonExpired: boolean;
+    accountNonLocked: boolean;
+    credentialsNonExpired: boolean;
+  };
+  credentials?: any;
+  details?: {
+    remoteAddress?: string;
+    sessionId?: string;
+  };
+}
+
+// ============================================================================
+// AGGREGATE API TYPES (from Swagger documentation)
+// ============================================================================
+
+/**
+ * Aggregate search parameters for the /api/aggregate endpoint
+ */
+export interface AggregateFindDTO {
+  page?: number;
+  size?: number;
+  createdBy?: string;
+  hasHistory?: boolean;
+}
+
+/**
+ * Aggregate file entity with metadata
+ */
+export interface AggregateFile {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  lastUpdatedAt: string;
+  lastUpdatedBy: string;
+  softDeletedAt?: string;
+  softDeleteBy?: string;
+  softDeleted: boolean;
+  uuid: string;
+  fileName: string;
+  fileReference: string;
+  label?: string;
+}
+
+/**
+ * Aggregate property entity with optional values
+ */
+export interface AggregateProperty {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  lastUpdatedAt: string;
+  lastUpdatedBy: string;
+  softDeletedAt?: string;
+  softDeleteBy?: string;
+  softDeleted: boolean;
+  uuid: string;
+  key: string;
+  version?: string;
+  label?: string;
+  description?: string;
+  type?: string;
+  inputType?: string;
+  formula?: string;
+  inputOrderPosition?: number;
+  processingOrderPosition?: number;
+  viewOrderPosition?: number;
+  values?: Array<{
+    id: string;
+    uuid: string;
+    value?: string;
+    valueTypeCast?: string;
+    sourceType?: string;
+    softDeleted: boolean;
+  }>;
+}
+
+/**
+ * Rich aggregate entity with all relationships and metadata
+ */
+export interface AggregateEntity {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  lastUpdatedAt: string;
+  lastUpdatedBy: string;
+  softDeletedAt?: string;
+  softDeleteBy?: string;
+  softDeleted: boolean;
+  abbreviation?: string;
+  description?: string;
+  uuid: string;
+  name?: string;
+  version?: string;
+  parents: string[];
+  children: string[];
+  inputs: string[];
+  outputs: string[];
+  models: string[];
+  instances: string[];
+  files: AggregateFile[];
+  properties: AggregateProperty[];
+  history: Array<{
+    uuid: string;
+    name?: string;
+    abbreviation?: string;
+    version?: string;
+    description?: string;
+  }>;
+}
+
+/**
+ * Paginated response for aggregate entities
+ */
+export interface PageAggregateEntity {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  content: AggregateEntity[];
+  number: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }

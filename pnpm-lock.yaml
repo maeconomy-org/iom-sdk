@@ -69,6 +69,9 @@ importers:
       rollup:
         specifier: ^4.1.4
         version: 4.40.0
+      rollup-plugin-alias:
+        specifier: ^2.2.0
+        version: 2.2.0
       rollup-plugin-dts:
         specifier: ^6.1.0
         version: 6.2.1(rollup@4.40.0)(typescript@5.8.3)
@@ -2191,6 +2194,10 @@ packages:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
+
+  rollup-plugin-alias@2.2.0:
+    resolution: {integrity: sha512-9ZK410qeFed4gGrHoojBpxLsHF74vPgsheGg9JRW5RbALAxqdvJbd357mSqWBqUrBfRVnZnNUXTZdYLxxQEA5A==}
+    deprecated: This module has moved and is now available at @rollup/plugin-alias. Please update your dependencies. This version is no longer maintained.
 
   rollup-plugin-dts@6.2.1:
     resolution: {integrity: sha512-sR3CxYUl7i2CHa0O7bA45mCrgADyAQ0tVtGSqi3yvH28M+eg1+g5d7kQ9hLvEz5dorK3XVsH5L2jwHLQf72DzA==}
@@ -4997,6 +5004,10 @@ snapshots:
   rimraf@3.0.2:
     dependencies:
       glob: 7.2.3
+
+  rollup-plugin-alias@2.2.0:
+    dependencies:
+      slash: 3.0.0
 
   rollup-plugin-dts@6.2.1(rollup@4.40.0)(typescript@5.8.3):
     dependencies:

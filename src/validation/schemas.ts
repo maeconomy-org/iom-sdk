@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Predicate } from '../types';
+import { Predicate } from '@/types';
 
 // UUID Validation
 export const uuidSchema = z.string().uuid({

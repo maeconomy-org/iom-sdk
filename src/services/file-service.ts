@@ -1,59 +1,30 @@
-import { z } from 'zod';
-
-import { ApiResponse, UUFileDTO, UUID, QueryParams } from '../types';
-import { httpClient } from '../core/http-client';
-import { validate } from '../validation/validate';
-import { fileDTOSchema } from '../validation/schemas';
-import { logError } from '../core/logger';
+import { ApiResponse, UUFileDTO, UUID, QueryParams } from '@/types';
+import { httpClient, logError } from '@/core';
+import {
+  validateQueryParams,
+  validateUuid,
+  validate,
+  fileDTOSchema
+} from '@/validation';
 
 const basePath = '/api/UUFile';
 
 /**
- * Get all files
+ * Get files with optional filtering
+ * This unified function replaces getAllFiles, getOwnFiles, and getFileByUuid
  *
  * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of files
+ * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @returns List of files matching the criteria, or single file if uuid is provided
  */
-export const getAllFiles =
+export const getFiles =
   (client = httpClient) =>
   async (params?: QueryParams): Promise<ApiResponse<UUFileDTO[]>> => {
     try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUFileDTO[]>(basePath, validatedParams);
+      const cleanParams = validateQueryParams(params);
+      return await client.get<UUFileDTO[]>(basePath, cleanParams);
     } catch (error: any) {
-      logError('getAllFiles', error);
-      throw error;
-    }
-  };
-
-/**
- * Get files owned by the current user
- *
- * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of files owned by the current user
- */
-export const getOwnFiles =
-  (client = httpClient) =>
-  async (params?: QueryParams): Promise<ApiResponse<UUFileDTO[]>> => {
-    try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUFileDTO[]>(`${basePath}/own`, validatedParams);
-    } catch (error: any) {
-      logError('getOwnFiles', error);
+      logError('getFiles', error);
       throw error;
     }
   };
@@ -80,60 +51,6 @@ export const createOrUpdateFile =
   };
 
 /**
- * Get a file by UUID
- *
- * @param client - HTTP client instance
- * @param uuid - The UUID of the file to get
- * @param params - Query parameters
- * @returns The requested file or null if not found
- */
-export const getFileByUuid =
-  (client = httpClient) =>
-  async (
-    uuid: UUID,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUFileDTO | null>> => {
-    try {
-      // Validate UUID and params
-      const validatedUuid = validate(z.string().uuid(), uuid);
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUFileDTO | null>(
-        `${basePath}/${validatedUuid}`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getFileByUuid', error);
-      throw error;
-    }
-  };
-
-/**
- * Get file content
- *
- * @param client - HTTP client instance
- * @param uuid - The UUID of the file to get content for
- * @returns The file content (typically base64 encoded)
- */
-export const getFileContent =
-  (client = httpClient) =>
-  async (uuid: UUID): Promise<ApiResponse<string>> => {
-    try {
-      // Validate UUID
-      const validatedUuid = validate(z.string().uuid(), uuid);
-
-      return await client.get<string>(`${basePath}/${validatedUuid}/content`);
-    } catch (error: any) {
-      logError('getFileContent', error);
-      throw error;
-    }
-  };
-
-/**
  * Soft delete a file
  *
  * @param client - HTTP client instance
@@ -145,7 +62,7 @@ export const softDeleteFile =
   async (uuid: UUID): Promise<ApiResponse<any>> => {
     try {
       // Validate UUID
-      const validatedUuid = validate(z.string().uuid(), uuid);
+      const validatedUuid = validateUuid(uuid);
 
       return await client.delete<any>(`${basePath}/${validatedUuid}`);
     } catch (error: any) {

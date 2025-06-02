@@ -1,4 +1,4 @@
-import { IOBClientConfig } from '../types';
+import { IOBClientConfig } from '@/types';
 
 // Default configuration
 let debugConfig = {

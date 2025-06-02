@@ -1,87 +1,41 @@
 import { z } from 'zod';
-
+import { httpClient, logError } from '@/core';
 import {
   ApiResponse,
   Predicate,
   UUStatementDTO,
   UUID,
-  QueryParams
-} from '../types';
-import { httpClient } from '../core/http-client';
+  QueryParams,
+  StatementQueryParams
+} from '@/types';
 import {
-  findStatementsParamsSchema,
+  validateStatementQueryParams,
+  validate,
   statementDTOSchema
-} from '../validation/schemas';
-import { validate } from '../validation/validate';
-import { logError } from '../core/logger';
+} from '@/validation';
 
 const basePath = '/api/UUStatements';
 
 /**
- * Get all statements
+ * Get statements with optional filtering
+ * This unified function handles all statement retrieval scenarios
  *
  * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of statements
+ * @param params - Statement query parameters (subject, predicate, object, softDeleted, createdBy)
+ * @returns List of statements matching the criteria
  */
-export const getAllStatements =
+export const getStatements =
   (client = httpClient) =>
-  (params?: QueryParams): Promise<ApiResponse<UUStatementDTO[]>> => {
-    // Validate params if provided
-    const validatedParams = params
-      ? {
-          softDeleted: validate(z.boolean().optional(), params.softDeleted)
-        }
-      : undefined;
-
-    return client.get<UUStatementDTO[]>(basePath, validatedParams);
-  };
-
-/**
- * Get a statement by UUID
- *
- * @param client - HTTP client instance
- * @param uuid - UUID of the statement
- * @param params - Query parameters
- * @returns Statement with the given UUID
- */
-export const getStatementByUuid =
-  (client = httpClient) =>
-  (uuid: UUID, params?: QueryParams): Promise<ApiResponse<UUStatementDTO>> => {
-    // Validate UUID
-    const validatedUuid = validate(z.string().uuid(), uuid);
-
-    // Validate params if provided
-    const validatedParams = params
-      ? {
-          softDeleted: validate(z.boolean().optional(), params.softDeleted)
-        }
-      : undefined;
-
-    return client.get<UUStatementDTO>(
-      `${basePath}/${validatedUuid}`,
-      validatedParams
-    );
-  };
-
-/**
- * Get statements owned by the current user
- *
- * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of statements owned by the current user
- */
-export const getOwnStatements =
-  (client = httpClient) =>
-  (params?: QueryParams): Promise<ApiResponse<UUStatementDTO[]>> => {
-    // Validate params if provided
-    const validatedParams = params
-      ? {
-          softDeleted: validate(z.boolean().optional(), params.softDeleted)
-        }
-      : undefined;
-
-    return client.get<UUStatementDTO[]>(`${basePath}/own`, validatedParams);
+  async (
+    params?: StatementQueryParams
+  ): Promise<ApiResponse<UUStatementDTO[]>> => {
+    try {
+      const cleanParams = validateStatementQueryParams(params);
+      return await client.get<UUStatementDTO[]>(basePath, cleanParams);
+    } catch (error: any) {
+      logError('getStatements', error);
+      throw error;
+    }
   };
 
 /**
@@ -135,241 +89,67 @@ export const createStatement =
   };
 
 /**
- * Find statements based on subject, predicate, and/or object criteria
- *
- * @param client - HTTP client instance
- * @param params - Search parameters (subject, predicate, object)
- * @param queryParams - Query parameters like softDeleted
- * @returns Statements matching the criteria
- */
-export const findStatements =
-  (client = httpClient) =>
-  async (
-    params: {
-      subject?: UUID;
-      predicate?: Predicate;
-      object?: UUID;
-    },
-    queryParams?: QueryParams
-  ): Promise<ApiResponse<UUStatementDTO[]>> => {
-    try {
-      // Validate search parameters
-      const validatedParams = validate(findStatementsParamsSchema, params);
-      const validatedQueryParams = queryParams
-        ? {
-            softDeleted: validate(
-              z.boolean().optional(),
-              queryParams.softDeleted
-            )
-          }
-        : undefined;
-
-      // Combine search params and query params for query string
-      const combinedQueryParams = {
-        ...(validatedParams.object ? { object: validatedParams.object } : {}),
-        ...(validatedQueryParams || {})
-      };
-
-      // If we have both subject and predicate, use the direct path format
-      if (validatedParams.subject && validatedParams.predicate) {
-        return await client.get<UUStatementDTO[]>(
-          `${basePath}/${validatedParams.subject}/${validatedParams.predicate}`,
-          combinedQueryParams
-        );
-      }
-      // If we have just predicate, use predicate path
-      else if (validatedParams.predicate) {
-        return await client.get<UUStatementDTO[]>(
-          `${basePath}/${validatedParams.predicate}`,
-          {
-            ...(validatedParams.subject
-              ? { subject: validatedParams.subject }
-              : {}),
-            ...combinedQueryParams
-          }
-        );
-      }
-      // If we have just subject, use subject path
-      else if (validatedParams.subject) {
-        return await client.get<UUStatementDTO[]>(
-          `${basePath}/${validatedParams.subject}`,
-          combinedQueryParams
-        );
-      }
-      // If neither subject nor predicate is provided, we can't perform a search
-      else {
-        throw new Error(
-          'At least subject or predicate must be provided for statement search'
-        );
-      }
-    } catch (error: any) {
-      logError('findStatements', error);
-      throw error;
-    }
-  };
-
-/**
  * Get statements by UUID and predicate
+ * This is now a convenience wrapper around getAllStatements
  *
  * @param client - HTTP client instance
- * @param uuid - The UUID to find statements for
+ * @param uuid - The UUID to find statements for (subject)
  * @param predicate - The predicate to filter by
  * @param params - Query parameters
  * @returns Statements matching the criteria
  */
 export const getStatementsByUuidAndPredicate =
   (client = httpClient) =>
-  (
+  async (
     uuid: UUID,
     predicate: Predicate,
     params?: QueryParams
   ): Promise<ApiResponse<UUStatementDTO[]>> => {
-    // Validate UUID and predicate
-    const validatedUuid = validate(z.string().uuid(), uuid);
-    const validatedPredicate = validate(z.nativeEnum(Predicate), predicate);
-    const validatedParams = params
-      ? {
-          softDeleted: validate(z.boolean().optional(), params.softDeleted)
-        }
-      : undefined;
-
-    return client.get<UUStatementDTO[]>(
-      `${basePath}/${validatedUuid}/${validatedPredicate}`,
-      validatedParams
-    );
-  };
-
-/**
- * Get statements by predicate
- *
- * @param client - HTTP client instance
- * @param predicate - The predicate to filter by
- * @param params - Query parameters
- * @returns Statements matching the predicate
- */
-export const getStatementsByPredicate =
-  (client = httpClient) =>
-  (
-    predicate: Predicate,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUStatementDTO[]>> => {
-    // Validate predicate
-    const validatedPredicate = validate(z.nativeEnum(Predicate), predicate);
-    const validatedParams = params
-      ? {
-          softDeleted: validate(z.boolean().optional(), params.softDeleted)
-        }
-      : undefined;
-
-    return client.get<UUStatementDTO[]>(
-      `${basePath}/${validatedPredicate}`,
-      validatedParams
-    );
-  };
-
-/**
- * Get statements by subject
- *
- * @param client - HTTP client instance
- * @param subjectUuid - The subject UUID
- * @param params - Query parameters
- * @returns Statements with the given subject
- */
-export const getStatementsBySubject =
-  (client = httpClient) =>
-  (
-    subjectUuid: UUID,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUStatementDTO[]>> => {
-    // Validate subject UUID
-    const validatedSubjectUuid = validate(z.string().uuid(), subjectUuid);
-
-    return findStatements(client)({ subject: validatedSubjectUuid }, params);
-  };
-
-/**
- * Get statements by object
- *
- * @param client - HTTP client instance
- * @param objectUuid - The object UUID
- * @param params - Query parameters
- * @returns Statements with the given object
- */
-export const getStatementsByObject =
-  (client = httpClient) =>
-  async (
-    objectUuid: UUID,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUStatementDTO[]>> => {
-    // Validate object UUID
-    const validatedObjectUuid = validate(z.string().uuid(), objectUuid);
-
-    // Since the API doesn't support direct filtering by object,
-    // we need to get all statements and filter them manually
-    // or we need to get all predicates and search each one for matching statements with this object
-
-    // Get all statements (note: this might be inefficient for large datasets)
-    const response = await getAllStatements(client)(params);
-
-    if (!response.data) {
-      return response;
-    }
-
-    // Filter statements where object matches the requested UUID
-    const filteredStatements = response.data.filter(
-      statement => statement.object === validatedObjectUuid
-    );
-
-    return {
-      ...response,
-      data: filteredStatements
-    };
-  };
-
-/**
- * Delete a statement
- *
- * @param client - HTTP client instance
- * @param statement - Statement to delete
- * @returns API response
- */
-export const deleteStatement =
-  (client = httpClient) =>
-  async (statement: UUStatementDTO): Promise<ApiResponse<any>> => {
     try {
-      // Validate statement
-      const validatedStatement = validate(statementDTOSchema, statement);
+      // Validate UUID and predicate
+      const validatedUuid = validate(z.string().uuid(), uuid);
+      const validatedPredicate = validate(z.nativeEnum(Predicate), predicate);
 
-      return await client.post<any>(`${basePath}/delete`, validatedStatement);
+      // Use getAllStatements with subject and predicate
+      const statementParams: StatementQueryParams = {
+        subject: validatedUuid,
+        predicate: validatedPredicate,
+        softDeleted: params?.softDeleted,
+        createdBy: params?.createdBy
+      };
+
+      return getStatements(client)(statementParams);
     } catch (error: any) {
-      logError('deleteStatement', error);
+      logError('getStatementsByUuidAndPredicate', error);
       throw error;
     }
   };
 
 /**
  * Soft delete a statement
- * This performs a logical delete that can be undone later.
+ * This performs a logical delete using the DELETE HTTP method
  *
  * @param client - HTTP client instance
- * @param statement - Statement to soft delete or individual components
+ * @param statement - Statement to soft delete
  * @returns The API response
  */
 export const softDeleteStatement =
   (client = httpClient) =>
-  (
+  async (
     statement:
       | UUStatementDTO
       | { subject: UUID; predicate: Predicate; object: UUID }
   ): Promise<ApiResponse<any>> => {
-    // Validate statement
-    const validatedStatement = validate(statementDTOSchema, statement);
+    try {
+      // Validate statement
+      const validatedStatement = validate(statementDTOSchema, statement);
 
-    const { subject, predicate, object } = validatedStatement;
-
-    return client.delete<any>(
-      `${basePath}/${subject}/${predicate}/${object}/softDelete`
-    );
+      // Use DELETE HTTP method with statement as request body
+      return await client.delete<any>(basePath, validatedStatement);
+    } catch (error: any) {
+      logError('softDeleteStatement', error);
+      throw error;
+    }
   };
 
 /**

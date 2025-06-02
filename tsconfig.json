@@ -13,7 +13,16 @@
     "esModuleInterop": true,
     "jsx": "react",
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/types": ["src/types"],
+      "@/core": ["src/core"],
+      "@/services": ["src/services"],
+      "@/facade": ["src/facade"],
+      "@/validation": ["src/validation"]
+    }
   },
   "include": ["src", "tests"],
   "exclude": ["node_modules", "dist"]

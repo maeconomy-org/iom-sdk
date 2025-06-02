@@ -1,62 +1,70 @@
 import { z } from 'zod';
-
-import { ApiResponse, UUPropertyDTO, UUID, QueryParams } from '../types';
-import { httpClient } from '../core/http-client';
-import { validate } from '../validation/validate';
-import { propertyDTOSchema } from '../validation/schemas';
-import { logError } from '../core/logger';
+import { ApiResponse, UUPropertyDTO, UUID, QueryParams } from '@/types';
+import { httpClient, logError } from '@/core';
+import {
+  validateQueryParams,
+  validateUuid,
+  validate,
+  propertyDTOSchema
+} from '@/validation';
 
 const basePath = '/api/UUProperty';
 
 /**
- * Get all properties
+ * Get properties with optional filtering
+ * This unified function handles all property retrieval scenarios
  *
  * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of properties
+ * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @returns List of properties matching the criteria, or single property if uuid is provided
  */
-export const getAllProperties =
+export const getProperties =
   (client = httpClient) =>
   async (params?: QueryParams): Promise<ApiResponse<UUPropertyDTO[]>> => {
     try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUPropertyDTO[]>(basePath, validatedParams);
+      const cleanParams = validateQueryParams(params);
+      return await client.get<UUPropertyDTO[]>(basePath, cleanParams);
     } catch (error: any) {
-      logError('getAllProperties', error);
+      logError('getProperties', error);
       throw error;
     }
   };
 
 /**
- * Get properties owned by the current user
+ * Get a property by key (convenience function)
+ * Note: This filters client-side since the API doesn't support direct key lookup
  *
  * @param client - HTTP client instance
+ * @param key - The key of the property to get
  * @param params - Query parameters
- * @returns List of properties owned by the current user
+ * @returns The requested property or null if not found
  */
-export const getOwnProperties =
+export const getPropertyByKey =
   (client = httpClient) =>
-  async (params?: QueryParams): Promise<ApiResponse<UUPropertyDTO[]>> => {
+  async (
+    key: string,
+    params?: QueryParams
+  ): Promise<ApiResponse<UUPropertyDTO | null>> => {
     try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
+      const validatedKey = validate(z.string().min(1), key);
+      const response = await getProperties(client)(params);
 
-      return await client.get<UUPropertyDTO[]>(
-        `${basePath}/own`,
-        validatedParams
-      );
+      if (!response.data) {
+        return {
+          ...response,
+          data: null
+        };
+      }
+
+      // Filter by key on client side
+      const property = response.data.find(p => p.key === validatedKey) || null;
+
+      return {
+        ...response,
+        data: property
+      };
     } catch (error: any) {
-      logError('getOwnProperties', error);
+      logError('getPropertyByKey', error);
       throw error;
     }
   };
@@ -83,39 +91,6 @@ export const createOrUpdateProperty =
   };
 
 /**
- * Get a property by UUID
- *
- * @param client - HTTP client instance
- * @param uuid - The UUID of the property to get
- * @param params - Query parameters
- * @returns The requested property or null if not found
- */
-export const getPropertyByUuid =
-  (client = httpClient) =>
-  async (
-    uuid: UUID,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUPropertyDTO | null>> => {
-    try {
-      // Validate UUID and params
-      const validatedUuid = validate(z.string().uuid(), uuid);
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUPropertyDTO | null>(
-        `${basePath}/${validatedUuid}`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getPropertyByUuid', error);
-      throw error;
-    }
-  };
-
-/**
  * Soft delete a property
  *
  * @param client - HTTP client instance
@@ -127,44 +102,11 @@ export const softDeleteProperty =
   async (uuid: UUID): Promise<ApiResponse<any>> => {
     try {
       // Validate UUID
-      const validatedUuid = validate(z.string().uuid(), uuid);
+      const validatedUuid = validateUuid(uuid);
 
       return await client.delete<any>(`${basePath}/${validatedUuid}`);
     } catch (error: any) {
       logError('softDeleteProperty', error);
-      throw error;
-    }
-  };
-
-/**
- * Get a property by key
- *
- * @param client - HTTP client instance
- * @param key - The key of the property to get
- * @param params - Query parameters
- * @returns The requested property or null if not found
- */
-export const getPropertyByKey =
-  (client = httpClient) =>
-  async (
-    key: string,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUPropertyDTO | null>> => {
-    try {
-      // Validate key and params
-      const validatedKey = validate(z.string().min(1), key);
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUPropertyDTO | null>(
-        `${basePath}/byKey/${validatedKey}`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getPropertyByKey', error);
       throw error;
     }
   };

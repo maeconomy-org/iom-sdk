@@ -1,6 +1,5 @@
-import { ApiResponse, UUID } from '../types';
-import { httpClient, createHttpClient } from '../core/http-client';
-import { logError } from '../core/logger';
+import { ApiResponse, UUID } from '@/types';
+import { httpClient, createHttpClient, logError } from '@/core';
 
 /**
  * Creates a dedicated HTTP client for UUID service if a separate base URL is provided

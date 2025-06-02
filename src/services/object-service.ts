@@ -1,62 +1,30 @@
-import { z } from 'zod';
-
-import { ApiResponse, UUObjectDTO, UUID, QueryParams } from '../types';
-import { httpClient } from '../core/http-client';
-import { validate } from '../validation/validate';
-import { objectDTOSchema } from '../validation/schemas';
-import { logError } from '../core/logger';
+import { ApiResponse, UUObjectDTO, UUID, QueryParams } from '@/types';
+import { httpClient, logError } from '@/core';
+import {
+  validateQueryParams,
+  validateUuid,
+  validate,
+  objectDTOSchema
+} from '@/validation';
 
 const basePath = '/api/UUObject';
 
 /**
- * Get all objects
+ * Get objects with optional filtering
+ * This unified function handles all object retrieval scenarios
  *
  * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of objects
+ * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @returns List of objects matching the criteria, or single object if uuid is provided
  */
-export const getAllObjects =
+export const getObjects =
   (client = httpClient) =>
   async (params?: QueryParams): Promise<ApiResponse<UUObjectDTO[]>> => {
     try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUObjectDTO[]>(basePath, validatedParams);
+      const cleanParams = validateQueryParams(params);
+      return await client.get<UUObjectDTO[]>(basePath, cleanParams);
     } catch (error: any) {
-      logError('getAllObjects', error);
-      throw error;
-    }
-  };
-
-/**
- * Get objects owned by the current user
- *
- * @param client - HTTP client instance
- * @param params - Query parameters
- * @returns List of objects owned by the current user
- */
-export const getOwnObjects =
-  (client = httpClient) =>
-  async (params?: QueryParams): Promise<ApiResponse<UUObjectDTO[]>> => {
-    try {
-      // Validate params if provided
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUObjectDTO[]>(
-        `${basePath}/own`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getOwnObjects', error);
+      logError('getObjects', error);
       throw error;
     }
   };
@@ -83,39 +51,6 @@ export const createOrUpdateObject =
   };
 
 /**
- * Get an object by UUID
- *
- * @param client - HTTP client instance
- * @param uuid - The UUID of the object to get
- * @param params - Query parameters
- * @returns The requested object or null if not found
- */
-export const getObjectByUuid =
-  (client = httpClient) =>
-  async (
-    uuid: UUID,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUObjectDTO | null>> => {
-    try {
-      // Validate UUID and params
-      const validatedUuid = validate(z.string().uuid(), uuid);
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUObjectDTO | null>(
-        `${basePath}/${validatedUuid}`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getObjectByUuid', error);
-      throw error;
-    }
-  };
-
-/**
  * Soft delete an object
  *
  * @param client - HTTP client instance
@@ -127,44 +62,11 @@ export const softDeleteObject =
   async (uuid: UUID): Promise<ApiResponse<any>> => {
     try {
       // Validate UUID
-      const validatedUuid = validate(z.string().uuid(), uuid);
+      const validatedUuid = validateUuid(uuid);
 
       return await client.delete<any>(`${basePath}/${validatedUuid}`);
     } catch (error: any) {
       logError('softDeleteObject', error);
-      throw error;
-    }
-  };
-
-/**
- * Get all objects with a specific type
- *
- * @param client - HTTP client instance
- * @param type - The type to filter by
- * @param params - Query parameters
- * @returns List of objects with the specified type
- */
-export const getObjectsByType =
-  (client = httpClient) =>
-  async (
-    type: string,
-    params?: QueryParams
-  ): Promise<ApiResponse<UUObjectDTO[]>> => {
-    try {
-      // Validate input parameters
-      const validatedType = validate(z.string().min(1), type);
-      const validatedParams = params
-        ? {
-            softDeleted: validate(z.boolean().optional(), params.softDeleted)
-          }
-        : undefined;
-
-      return await client.get<UUObjectDTO[]>(
-        `${basePath}/byType/${validatedType}`,
-        validatedParams
-      );
-    } catch (error: any) {
-      logError('getObjectsByType', error);
       throw error;
     }
   };

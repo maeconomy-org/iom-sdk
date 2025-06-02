@@ -1,16 +1,16 @@
+import { z } from 'zod';
 import {
   ApiResponse,
   Predicate,
   UUPropertyDTO,
   UUID,
   QueryParams
-} from '../types';
-import { httpClient } from '../core/http-client';
-import * as propertyService from '../services/property-service';
-import * as statementService from '../services/statement-service';
-import * as uuidService from '../services/uuid-service';
-import { validate } from '../validation/validate';
-import { z } from 'zod';
+} from '@/types';
+import { httpClient } from '@/core';
+import * as propertyService from '@/services/property-service';
+import * as statementService from '@/services/statement-service';
+import * as uuidService from '@/services/uuid-service';
+import { validate } from '@/validation';
 
 /**
  * Add a property to an object
@@ -107,13 +107,13 @@ export const getPropertiesForObject =
 
     for (const statement of statementsResponse.data) {
       const propertyUuid = statement.object;
-      const propertyResponse = await propertyService.getPropertyByUuid(client)(
-        propertyUuid,
-        params
-      );
+      const propertyResponse = await propertyService.getProperties(client)({
+        uuid: propertyUuid,
+        ...params
+      });
 
-      if (propertyResponse.data) {
-        properties.push(propertyResponse.data);
+      if (propertyResponse.data && propertyResponse.data.length > 0) {
+        properties.push(propertyResponse.data[0]);
       }
     }
 
