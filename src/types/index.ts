@@ -210,7 +210,7 @@ export interface AuthResponse {
 // ============================================================================
 
 /**
- * Aggregate search parameters for the /api/aggregate endpoint
+ * Aggregate search parameters for the /api/Aggregate endpoint
  */
 export interface AggregateFindDTO {
   page?: number;

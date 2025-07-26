@@ -8,11 +8,11 @@ import {
 import { httpClient, logError } from '@/core';
 import { validateAggregateParams, validateUuid } from '@/validation';
 
-const basePath = '/api/aggregate';
+const basePath = '/api/Aggregate';
 
 /**
  * Find any entity by UUID using the aggregate API
- * Uses the new /api/aggregate/{uuid} endpoint which provides rich aggregated data
+ * Uses the new /api/Aggregate/{uuid} endpoint which provides rich aggregated data
  *
  * @param client - HTTP client instance
  * @param uuid - UUID of the entity to find
