@@ -10,7 +10,8 @@ import {
   ComplexObjectCreationInput,
   AggregateFindDTO,
   StatementQueryParams,
-  Predicate
+  Predicate,
+  UUAddressDTO
 } from './types';
 import { setHttpClient, configureLogger } from './core';
 
@@ -24,6 +25,7 @@ import * as uuidService from './services/uuid-service';
 import * as objectFacade from './facade/object-facade';
 import * as commonFacade from './facade/common-facade';
 import * as aggregateFacade from './facade/aggregate-facade';
+import * as addressService from './services/address-service';
 
 /**
  * Initialize the IOB client with the given configuration
@@ -240,6 +242,20 @@ export const createClient = (config: IOBClientConfig) => {
       create: () => uuidService.createUUID()(),
       getOwned: () => uuidService.getOwnedUUIDs()(),
       getAllOwners: () => uuidService.getAllUUIDOwners()()
+    },
+
+    // Addresses
+    addresses: {
+      create: (address: Omit<UUAddressDTO, 'uuid'>) =>
+        addressService.createAddress()(address),
+      update: (address: UUAddressDTO) =>
+        addressService.updateAddress()(address),
+      get: (params?: QueryParams) => addressService.getAddresses()(params),
+      delete: (uuid: UUID) => addressService.softDeleteAddress()(uuid),
+      createForObject: (
+        objectUuid: UUID,
+        address: Omit<UUAddressDTO, 'uuid'>
+      ) => addressService.createAddressForObject()(objectUuid, address)
     }
   };
 };

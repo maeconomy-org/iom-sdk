@@ -14,7 +14,9 @@ export enum Predicate {
   IS_VALUE_OF = 'IS_VALUE_OF',
   HAS_VALUE = 'HAS_VALUE',
   IS_FILE_OF = 'IS_FILE_OF',
-  HAS_FILE = 'HAS_FILE'
+  HAS_FILE = 'HAS_FILE',
+  HAS_ADDRESS = 'HAS_ADDRESS',
+  IS_ADDRESS_OF = 'IS_ADDRESS_OF'
 }
 
 // Common query parameters
@@ -78,6 +80,21 @@ export interface UUFileDTO {
   fileName: string;
   fileReference: string;
   label?: string;
+  contentType?: string;
+  size?: number;
+}
+
+// UUAddress Data Transfer Object
+export interface UUAddressDTO {
+  uuid: UUID;
+  fullAddress?: string;
+  street?: string;
+  houseNumber?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  state?: string;
+  district?: string;
 }
 
 // Configure options for the client
@@ -143,6 +160,9 @@ export interface ComplexObjectCreationInput {
       file: Omit<UUFileDTO, 'uuid'>;
     }>;
   }>;
+
+  // Optional address to attach to the object
+  address?: Omit<UUAddressDTO, 'uuid'>;
 }
 
 // Complex object output
@@ -162,6 +182,9 @@ export interface ComplexObjectOutput {
 
   // Files attached directly to the object
   files: UUFileDTO[];
+
+  // Address attached to the object if provided
+  address?: UUAddressDTO;
 
   // Parent object if a parentUuid was provided
   parent?: UUObjectDTO;
@@ -216,7 +239,11 @@ export interface AggregateFindDTO {
   page?: number;
   size?: number;
   createdBy?: string;
+  hasChildrenFull?: boolean;
   hasHistory?: boolean;
+  hasParentUUIDFilter?: boolean;
+  parentUUID?: string;
+  searchTerm?: string;
 }
 
 /**
@@ -271,6 +298,28 @@ export interface AggregateProperty {
 }
 
 /**
+ * Aggregate address entity with metadata
+ */
+export interface AggregateUUAddress {
+  createdAt: string;
+  createdBy: string;
+  lastUpdatedAt: string;
+  lastUpdatedBy: string;
+  softDeletedAt?: string;
+  softDeleteBy?: string;
+  softDeleted: boolean;
+  uuid: string;
+  fullAddress?: string;
+  street?: string;
+  houseNumber?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  state?: string;
+  district?: string;
+}
+
+/**
  * Rich aggregate entity with all relationships and metadata
  */
 export interface AggregateEntity {
@@ -287,6 +336,7 @@ export interface AggregateEntity {
   uuid: string;
   name?: string;
   version?: string;
+  address?: AggregateUUAddress;
   parents: string[];
   children: string[];
   inputs: string[];

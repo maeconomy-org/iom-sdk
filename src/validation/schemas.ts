@@ -64,10 +64,27 @@ export const fileDTOSchema = z.object({
   uuid: uuidSchema,
   fileName: z.string().min(1, 'Filename is required'),
   fileReference: z.string().min(1, 'File reference is required'),
-  label: z.string().optional()
+  label: z.string().optional(),
+  contentType: z.string().optional(),
+  size: z.number().optional()
 });
 
 export type FileDTOSchemaType = z.infer<typeof fileDTOSchema>;
+
+// Address DTO Validation Schema
+export const addressDTOSchema = z.object({
+  uuid: uuidSchema,
+  fullAddress: z.string().optional(),
+  street: z.string().optional(),
+  houseNumber: z.string().optional(),
+  city: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  district: z.string().optional()
+});
+
+export type AddressDTOSchemaType = z.infer<typeof addressDTOSchema>;
 
 // Find Statements Params Validation Schema
 export const findStatementsParamsSchema = z
@@ -131,7 +148,8 @@ export const complexObjectCreationSchema = z.object({
   object: objectDTOSchema.omit({ uuid: true }),
   parentUuid: uuidSchema.optional(),
   files: z.array(fileInputSchema).optional(),
-  properties: z.array(propertyWithValuesFilesSchema).optional()
+  properties: z.array(propertyWithValuesFilesSchema).optional(),
+  address: addressDTOSchema.omit({ uuid: true }).optional()
 });
 
 export type ComplexObjectCreationSchemaType = z.infer<

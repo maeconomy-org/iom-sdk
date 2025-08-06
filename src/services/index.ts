@@ -3,6 +3,7 @@ export * from './statement-service';
 export * from './property-service';
 export * from './property-value-service';
 export * from './file-service';
+export * from './address-service';
 export * from './uuid-service';
 export * from './aggregate-service';
 export * from './common-service';

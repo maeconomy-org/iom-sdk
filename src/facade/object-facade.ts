@@ -4,6 +4,7 @@ import * as statementService from '@/services/statement-service';
 import * as propertyService from '@/services/property-service';
 import * as propertyValueService from '@/services/property-value-service';
 import * as fileService from '@/services/file-service';
+import * as addressService from '@/services/address-service';
 import * as uuidService from '@/services/uuid-service';
 import { validate, complexObjectCreationSchema } from '@/validation';
 import {
@@ -14,7 +15,9 @@ import {
   UUFileDTO,
   UUObjectDTO,
   UUPropertyDTO,
-  UUPropertyValueDTO
+  UUPropertyValueDTO,
+  UUAddressDTO,
+  UUStatementDTO
 } from '@/types';
 
 /**
@@ -38,7 +41,20 @@ export const createFullObject =
         objectData
       );
 
-      // 1. Create the main object
+      // Process object creation step by step
+      const processedProperties: Array<{
+        property: UUPropertyDTO;
+        values: Array<{
+          value: UUPropertyValueDTO;
+          files: UUFileDTO[];
+        }>;
+        files: UUFileDTO[];
+      }> = [];
+
+      let parentObject: UUObjectDTO | undefined;
+      let createdAddress: UUAddressDTO | undefined;
+
+      // 1. Create the object first
       // Get a UUID for the object
       const objectUuidResponse = await uuidService.createUUID(client)();
       if (!objectUuidResponse.data?.uuid) {
@@ -61,8 +77,6 @@ export const createFullObject =
       const objectUuid = createdObject.uuid;
 
       // 2. Establish parent relationship if parentUuid is provided
-      let parentObject: UUObjectDTO | undefined;
-
       if (validatedObjectData.parentUuid) {
         // Get parent object details
         const parentResponse = await objectService.getObjects(client)({
@@ -84,6 +98,27 @@ export const createFullObject =
             predicate: Predicate.IS_CHILD_OF,
             object: validatedObjectData.parentUuid
           });
+        }
+      }
+
+      if (validatedObjectData.address) {
+        // Create the address (UUID will be auto-generated)
+        const addressResponse = await addressService.createAddress(client)(
+          validatedObjectData.address
+        );
+
+        if (addressResponse.data) {
+          // Create the relationship statement (object HAS_ADDRESS address)
+          const addressStatement: UUStatementDTO = {
+            subject: objectUuid,
+            predicate: Predicate.HAS_ADDRESS,
+            object: addressResponse.data.uuid
+          };
+
+          await statementService.createStatement(client)(addressStatement);
+
+          // Store the created address for return data
+          createdAddress = addressResponse.data;
         }
       }
 
@@ -127,15 +162,6 @@ export const createFullObject =
       }
 
       // 4. Process properties and their values and files
-      const processedProperties: Array<{
-        property: UUPropertyDTO;
-        values: Array<{
-          value: UUPropertyValueDTO;
-          files: UUFileDTO[];
-        }>;
-        files: UUFileDTO[];
-      }> = [];
-
       if (
         validatedObjectData.properties &&
         validatedObjectData.properties.length > 0
@@ -324,6 +350,7 @@ export const createFullObject =
           object: createdObject,
           properties: processedProperties,
           files: objectFiles,
+          address: createdAddress,
           parent: parentObject
         },
         status: objectResponse.status,

@@ -46,6 +46,14 @@ export {
 } from './services/file-service';
 
 export {
+  getAddresses,
+  createAddress,
+  updateAddress,
+  softDeleteAddress,
+  createAddressForObject
+} from './services/address-service';
+
+export {
   createUUID,
   getOwnedUUIDs,
   getAllUUIDOwners
