@@ -26,6 +26,7 @@ import * as objectFacade from './facade/object-facade';
 import * as commonFacade from './facade/common-facade';
 import * as aggregateFacade from './facade/aggregate-facade';
 import * as addressService from './services/address-service';
+import * as fileFacade from './facade/file-facade';
 
 /**
  * Initialize the IOB client with the given configuration
@@ -221,7 +222,22 @@ export const createClient = (config: IOBClientConfig) => {
     files: {
       create: (file: UUFileDTO) => fileService.createOrUpdateFile()(file),
       getFiles: (params?: QueryParams) => fileService.getFiles()(params),
-      delete: (uuid: UUID) => fileService.softDeleteFile()(uuid)
+      delete: (uuid: UUID) => fileService.softDeleteFile()(uuid),
+      // New facade helpers
+      uploadByReference: (
+        file: Partial<UUFileDTO> & { fileName: string; fileReference: string }
+      ) => fileFacade.uploadByReference()(file),
+      uploadDirect: (
+        input:
+          | { uuid: UUID; file: any }
+          | {
+              file: any;
+              fileName: string;
+              fileReference: string;
+              label?: string;
+            }
+      ) => fileFacade.uploadDirect()(input),
+      download: (uuid: UUID) => fileFacade.download()(uuid)
     },
 
     // Relationships (statements)

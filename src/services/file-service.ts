@@ -70,3 +70,62 @@ export const softDeleteFile =
       throw error;
     }
   };
+
+/**
+ * Upload a file's binary content via multipart/form-data
+ *
+ * Swagger: POST /api/UUFile/upload/{uuid}
+ *
+ * @param client - HTTP client instance
+ * @param uuid - UUID of the existing UUFile record
+ * @param file - Blob | File | Buffer to upload
+ * @param fieldName - Optional field name (defaults to 'file')
+ */
+export const uploadFileBinary =
+  (client = httpClient) =>
+  async (
+    uuid: UUID,
+    file: any,
+    fieldName: string = 'file'
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const validatedUuid = validateUuid(uuid);
+
+      // Construct a FormData payload (browser and modern Node >=18 support global FormData)
+      const FormDataCtor = (globalThis as any).FormData;
+      if (!FormDataCtor) {
+        throw new Error(
+          'FormData is not available in this environment. Please provide a global FormData (e.g., Node 18+), or polyfill it.'
+        );
+      }
+      const formData = new FormDataCtor();
+      formData.append(fieldName, file);
+
+      return await client.postForm<any>(
+        `${basePath}/upload/${validatedUuid}`,
+        formData
+      );
+    } catch (error: any) {
+      logError('uploadFileBinary', error);
+      throw error;
+    }
+  };
+
+/**
+ * Download a file's binary content
+ *
+ * Swagger: GET /api/UUFile/download/{uuid}
+ */
+export const downloadFileBinary =
+  (client = httpClient) =>
+  async (uuid: UUID): Promise<ApiResponse<ArrayBuffer>> => {
+    try {
+      const validatedUuid = validateUuid(uuid);
+      return await client.getBinary<ArrayBuffer>(
+        `${basePath}/download/${validatedUuid}`
+      );
+    } catch (error: any) {
+      logError('downloadFileBinary', error);
+      throw error;
+    }
+  };

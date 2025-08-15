@@ -146,7 +146,7 @@ export const propertyWithValuesFilesSchema = z.object({
 // Complex Object Creation Input Schema
 export const complexObjectCreationSchema = z.object({
   object: objectDTOSchema.omit({ uuid: true }),
-  parentUuid: uuidSchema.optional(),
+  parents: z.array(uuidSchema).optional(),
   files: z.array(fileInputSchema).optional(),
   properties: z.array(propertyWithValuesFilesSchema).optional(),
   address: addressDTOSchema.omit({ uuid: true }).optional()

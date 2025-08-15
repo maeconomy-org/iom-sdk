@@ -107,6 +107,39 @@ export const createHttpClient = (config: IOBClientConfig) => {
   };
 
   /**
+   * Makes a GET request that expects binary data (e.g., file download)
+   *
+   * @param url - The endpoint URL
+   * @returns Promise with the binary response data
+   */
+  const getBinary = async <T = ArrayBuffer>(
+    url: string
+  ): Promise<ApiResponse<T>> => {
+    try {
+      // Log the request
+      logHttp('GET', url);
+
+      const response: AxiosResponse = await client.get(url, {
+        responseType: 'arraybuffer'
+      });
+
+      // Log the response
+      logHttp('GET', url, response.status);
+
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers as Record<string, string>
+      } as ApiResponse<T>;
+    } catch (error) {
+      // Log the error
+      logError(`GET ${url} (binary)`, error);
+      throw handleError(error);
+    }
+  };
+
+  /**
    * Makes a POST request to the specified endpoint
    *
    * @param url - The endpoint URL
@@ -132,6 +165,47 @@ export const createHttpClient = (config: IOBClientConfig) => {
     } catch (error) {
       // Log the error
       logError(`POST ${url}`, error);
+      throw handleError(error);
+    }
+  };
+
+  /**
+   * Makes a multipart/form-data POST request (e.g., for file uploads)
+   *
+   * Note: Do not set the Content-Type header manually; letting the browser/axios
+   * set the boundary is safer and more portable.
+   *
+   * @param url - The endpoint URL
+   * @param formData - FormData payload
+   * @returns Promise with the response data
+   */
+  const postForm = async <T>(
+    url: string,
+    formData: any
+  ): Promise<ApiResponse<T>> => {
+    try {
+      // Log the request
+      logHttp('POST', url);
+
+      const response: AxiosResponse = await client.post(url, formData, {
+        headers: {
+          // Let axios/browser set the correct Content-Type with boundary automatically
+          // By not specifying it here, it will override the default application/json
+        }
+      });
+
+      // Log the response
+      logHttp('POST', url, response.status);
+
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers as Record<string, string>
+      };
+    } catch (error) {
+      // Log the error
+      logError(`POST ${url} (form)`, error);
       throw handleError(error);
     }
   };
@@ -201,7 +275,9 @@ export const createHttpClient = (config: IOBClientConfig) => {
 
   return {
     get,
+    getBinary,
     post,
+    postForm,
     put,
     delete: del,
     config

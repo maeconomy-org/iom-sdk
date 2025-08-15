@@ -12,9 +12,10 @@ const mockHttpClient = {
   }
 };
 
-// Use jest.doMock instead of jest.mock to avoid hoisting issues
-jest.doMock('../../src/core/http-client', () => ({
-  httpClient: mockHttpClient
+// Use jest.doMock to mock the barrel '@/core' import used by services
+jest.doMock('../../src/core', () => ({
+  httpClient: mockHttpClient,
+  logError: jest.fn()
 }));
 
 describe('Object Service', () => {
@@ -139,13 +140,15 @@ describe('Object Service', () => {
     it('should use the provided HTTP client instead of the default one', async () => {
       const customClient = {
         get: jest.fn(),
+        getBinary: jest.fn(),
         post: jest.fn(),
+        postForm: jest.fn(),
         put: jest.fn(),
         delete: jest.fn(),
         config: {
           baseUrl: 'https://custom-api.example.com'
         }
-      };
+      } as any;
 
       const mockResponse = {
         data: [

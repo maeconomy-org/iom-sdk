@@ -131,8 +131,8 @@ export interface ComplexObjectCreationInput {
   // Object details (UUID will be generated)
   object: Omit<UUObjectDTO, 'uuid'>;
 
-  // Optional parent UUID to establish parent-child relationship
-  parentUuid?: UUID;
+  // Optional parent UUIDs to establish parent-child relationships
+  parents?: UUID[];
 
   // Files to attach directly to the object
   files?: Array<{
@@ -186,8 +186,8 @@ export interface ComplexObjectOutput {
   // Address attached to the object if provided
   address?: UUAddressDTO;
 
-  // Parent object if a parentUuid was provided
-  parent?: UUObjectDTO;
+  // Parent objects if parents were provided
+  parents?: UUObjectDTO[];
 }
 
 // API Response types

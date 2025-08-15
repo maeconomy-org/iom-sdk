@@ -42,7 +42,9 @@ export {
 export {
   getFiles,
   createOrUpdateFile,
-  softDeleteFile
+  softDeleteFile,
+  uploadFileBinary,
+  downloadFileBinary
 } from './services/file-service';
 
 export {
@@ -83,6 +85,12 @@ export {
   findByUUID as aggregateSearch,
   getAggregateEntities as searchAggregateEntities
 } from './facade/aggregate-facade';
+
+export {
+  uploadByReference as uploadFileByReference,
+  uploadDirect as uploadFileDirect,
+  download as downloadFile
+} from './facade/file-facade';
 
 // Validation utilities
 export { validate, validateSafe, ValidationError } from './validation/validate';

@@ -26,7 +26,7 @@ import {
  * This high-level operation handles creating the complete object hierarchy in a single function call.
  *
  * @param client - HTTP client instance
- * @param objectData - The complex object data including properties, values, files, and optional parent
+ * @param objectData - The complex object data including properties, values, files, and optional parents
  * @returns The created complex object with all its relationships
  */
 export const createFullObject =
@@ -51,7 +51,7 @@ export const createFullObject =
         files: UUFileDTO[];
       }> = [];
 
-      let parentObject: UUObjectDTO | undefined;
+      const parentObjects: UUObjectDTO[] = [];
       let createdAddress: UUAddressDTO | undefined;
 
       // 1. Create the object first
@@ -76,28 +76,33 @@ export const createFullObject =
       const createdObject = objectResponse.data;
       const objectUuid = createdObject.uuid;
 
-      // 2. Establish parent relationship if parentUuid is provided
-      if (validatedObjectData.parentUuid) {
-        // Get parent object details
-        const parentResponse = await objectService.getObjects(client)({
-          uuid: validatedObjectData.parentUuid
-        });
-
-        if (parentResponse.data && parentResponse.data.length > 0) {
-          parentObject = parentResponse.data[0];
-
-          // Create parent-child relationships
-          await statementService.createStatement(client)({
-            subject: validatedObjectData.parentUuid,
-            predicate: Predicate.IS_PARENT_OF,
-            object: objectUuid
+      // 2. Establish parent relationships if parents are provided
+      if (
+        validatedObjectData.parents &&
+        validatedObjectData.parents.length > 0
+      ) {
+        for (const parentUuid of validatedObjectData.parents) {
+          // Get parent object details
+          const parentResponse = await objectService.getObjects(client)({
+            uuid: parentUuid
           });
 
-          await statementService.createStatement(client)({
-            subject: objectUuid,
-            predicate: Predicate.IS_CHILD_OF,
-            object: validatedObjectData.parentUuid
-          });
+          if (parentResponse.data && parentResponse.data.length > 0) {
+            parentObjects.push(parentResponse.data[0]);
+
+            // Create parent-child relationships
+            await statementService.createStatement(client)({
+              subject: parentUuid,
+              predicate: Predicate.IS_PARENT_OF,
+              object: objectUuid
+            });
+
+            await statementService.createStatement(client)({
+              subject: objectUuid,
+              predicate: Predicate.IS_CHILD_OF,
+              object: parentUuid
+            });
+          }
         }
       }
 
@@ -351,7 +356,7 @@ export const createFullObject =
           properties: processedProperties,
           files: objectFiles,
           address: createdAddress,
-          parent: parentObject
+          parents: parentObjects
         },
         status: objectResponse.status,
         statusText: objectResponse.statusText,
