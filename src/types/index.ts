@@ -77,8 +77,8 @@ export interface UUObjectDTO {
 // UUFile Data Transfer Object
 export interface UUFileDTO {
   uuid: UUID;
-  fileName: string;
-  fileReference: string;
+  fileName?: string;
+  fileReference?: string;
   label?: string;
   contentType?: string;
   size?: number;

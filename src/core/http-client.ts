@@ -144,14 +144,19 @@ export const createHttpClient = (config: IOBClientConfig) => {
    *
    * @param url - The endpoint URL
    * @param data - Request body data
+   * @param config - Optional request configuration including headers
    * @returns Promise with the response data
    */
-  const post = async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
+  const post = async <T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> => {
     try {
       // Log the request
       logHttp('POST', url);
 
-      const response: AxiosResponse = await client.post(url, data);
+      const response: AxiosResponse = await client.post(url, data, config);
 
       // Log the response
       logHttp('POST', url, response.status);
@@ -188,7 +193,9 @@ export const createHttpClient = (config: IOBClientConfig) => {
       logHttp('POST', url);
 
       const response: AxiosResponse = await client.post(url, formData, {
+        timeout: 120000,
         headers: {
+          'Content-Type': 'multipart/form-data'
           // Let axios/browser set the correct Content-Type with boundary automatically
           // By not specifying it here, it will override the default application/json
         }

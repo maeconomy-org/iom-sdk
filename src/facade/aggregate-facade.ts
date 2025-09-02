@@ -52,3 +52,19 @@ export const getAggregateEntities =
       throw error;
     }
   };
+
+export const createAggregateObject =
+  (client = httpClient) =>
+  async (data: any): Promise<ApiResponse<any | null>> => {
+    try {
+      // Forward to the service
+      return aggregateService.createAggregateObject(client)(data);
+    } catch (error: any) {
+      logError('createAggregateObject (aggregate facade)', error);
+      return {
+        data: null,
+        status: 500,
+        statusText: error.message || 'Error creating aggregate object'
+      };
+    }
+  };

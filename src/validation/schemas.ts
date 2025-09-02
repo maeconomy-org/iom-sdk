@@ -62,11 +62,9 @@ export type PropertyValueDTOSchemaType = z.infer<typeof propertyValueDTOSchema>;
 // File DTO Validation Schema
 export const fileDTOSchema = z.object({
   uuid: uuidSchema,
-  fileName: z.string().min(1, 'Filename is required'),
+  fileName: z.string().optional(),
   fileReference: z.string().min(1, 'File reference is required'),
-  label: z.string().optional(),
-  contentType: z.string().optional(),
-  size: z.number().optional()
+  label: z.string().optional()
 });
 
 export type FileDTOSchemaType = z.infer<typeof fileDTOSchema>;

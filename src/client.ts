@@ -98,7 +98,9 @@ export const createClient = (config: IOBClientConfig) => {
     aggregate: {
       findByUUID: (uuid: UUID) => aggregateFacade.findByUUID()(uuid),
       getAggregateEntities: (params?: AggregateFindDTO) =>
-        aggregateFacade.getAggregateEntities()(params)
+        aggregateFacade.getAggregateEntities()(params),
+      createAggregateObject: (data: any) =>
+        aggregateFacade.createAggregateObject()(data)
     },
 
     // Entity creation and management
@@ -223,20 +225,21 @@ export const createClient = (config: IOBClientConfig) => {
       create: (file: UUFileDTO) => fileService.createOrUpdateFile()(file),
       getFiles: (params?: QueryParams) => fileService.getFiles()(params),
       delete: (uuid: UUID) => fileService.softDeleteFile()(uuid),
-      // New facade helpers
-      uploadByReference: (
-        file: Partial<UUFileDTO> & { fileName: string; fileReference: string }
-      ) => fileFacade.uploadByReference()(file),
-      uploadDirect: (
-        input:
-          | { uuid: UUID; file: any }
-          | {
-              file: any;
-              fileName: string;
-              fileReference: string;
-              label?: string;
-            }
-      ) => fileFacade.uploadDirect()(input),
+      // Simplified facade methods
+      uploadByReference: (input: {
+        fileReference: string;
+        uuidToAttach: UUID;
+        label?: string;
+      }) => fileFacade.uploadByReference()(input),
+      uploadDirect: (input: {
+        file: File | Blob | ArrayBuffer | FormData;
+        uuidToAttach: UUID;
+      }) => fileFacade.uploadDirect()(input),
+      uploadFormData: (input: {
+        formData: FormData;
+        uuidFile: UUID;
+        uuidToAttach: UUID;
+      }) => fileFacade.uploadFormData()(input),
       download: (uuid: UUID) => fileFacade.download()(uuid)
     },
 

@@ -89,6 +89,7 @@ export {
 export {
   uploadByReference as uploadFileByReference,
   uploadDirect as uploadFileDirect,
+  uploadFormData as uploadFileFormData,
   download as downloadFile
 } from './facade/file-facade';
 

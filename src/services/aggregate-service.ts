@@ -80,3 +80,29 @@ export const getAggregateEntities =
       throw error;
     }
   };
+
+export const createAggregateObject =
+  (client = httpClient) =>
+  async (data: any): Promise<ApiResponse<any | null>> => {
+    try {
+      const response = await client.post<any>(basePath, data);
+
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers
+      };
+    } catch (error: any) {
+      logError('createAggregateObject', error);
+      return {
+        data: null,
+        status: error.status || 500,
+        statusText:
+          error.statusText ||
+          error.message ||
+          'Error creating aggregate object',
+        headers: {}
+      };
+    }
+  };

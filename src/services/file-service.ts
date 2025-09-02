@@ -74,22 +74,25 @@ export const softDeleteFile =
 /**
  * Upload a file's binary content via multipart/form-data
  *
- * Swagger: POST /api/UUFile/upload/{uuid}
+ * Swagger: POST /api/UUFile/upload?uuidFile={uuidFile}&uuidToAttach={uuidToAttach}
  *
  * @param client - HTTP client instance
- * @param uuid - UUID of the existing UUFile record
+ * @param uuidFile - UUID of the file record
+ * @param uuidToAttach - UUID of the object/property/value to attach to
  * @param file - Blob | File | Buffer to upload
  * @param fieldName - Optional field name (defaults to 'file')
  */
 export const uploadFileBinary =
   (client = httpClient) =>
   async (
-    uuid: UUID,
+    uuidFile: UUID,
+    uuidToAttach: UUID,
     file: any,
     fieldName: string = 'file'
   ): Promise<ApiResponse<any>> => {
     try {
-      const validatedUuid = validateUuid(uuid);
+      const validatedFileUuid = validateUuid(uuidFile);
+      const validatedAttachUuid = validateUuid(uuidToAttach);
 
       // Construct a FormData payload (browser and modern Node >=18 support global FormData)
       const FormDataCtor = (globalThis as any).FormData;
@@ -101,10 +104,10 @@ export const uploadFileBinary =
       const formData = new FormDataCtor();
       formData.append(fieldName, file);
 
-      return await client.postForm<any>(
-        `${basePath}/upload/${validatedUuid}`,
-        formData
-      );
+      // Build URL with query parameters
+      const url = `${basePath}/upload?uuidFile=${validatedFileUuid}&uuidToAttach=${validatedAttachUuid}`;
+
+      return await client.postForm<any>(url, formData);
     } catch (error: any) {
       logError('uploadFileBinary', error);
       throw error;
