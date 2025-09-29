@@ -14,7 +14,7 @@ const basePath = '/api/UUAddress';
  * This unified function handles all address retrieval scenarios including by UUID
  *
  * @param client - HTTP client instance
- * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @param params - Query parameters for filtering (uuid, softDeleted)
  * @returns List of addresses matching the criteria, or single address if uuid is provided
  */
 export const getAddresses =

@@ -14,7 +14,7 @@ const basePath = '/api/UUObject';
  * This unified function handles all object retrieval scenarios
  *
  * @param client - HTTP client instance
- * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @param params - Query parameters for filtering (uuid, softDeleted)
  * @returns List of objects matching the criteria, or single object if uuid is provided
  */
 export const getObjects =

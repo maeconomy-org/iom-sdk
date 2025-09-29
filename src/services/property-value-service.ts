@@ -14,7 +14,7 @@ const basePath = '/api/UUPropertyValue';
  * This unified function handles all property value retrieval scenarios
  *
  * @param client - HTTP client instance
- * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @param params - Query parameters for filtering (uuid, softDeleted)
  * @returns List of property values matching the criteria, or single property value if uuid is provided
  */
 export const getPropertyValues =

@@ -3,6 +3,7 @@ import {
   AggregateFindDTO,
   AggregateEntity,
   PageAggregateEntity,
+  AggregateCreateDTO,
   UUID
 } from '@/types';
 import { httpClient, logError } from '@/core';
@@ -81,9 +82,17 @@ export const getAggregateEntities =
     }
   };
 
+/**
+ * Create aggregate objects using the new API structure
+ * Uses POST /api/Aggregate endpoint with new AggregateCreateDTO structure
+ *
+ * @param client - HTTP client instance
+ * @param data - Aggregate creation data with user context
+ * @returns Created aggregate response
+ */
 export const createAggregateObject =
   (client = httpClient) =>
-  async (data: any): Promise<ApiResponse<any | null>> => {
+  async (data: AggregateCreateDTO): Promise<ApiResponse<any | null>> => {
     try {
       const response = await client.post<any>(basePath, data);
 
@@ -102,6 +111,40 @@ export const createAggregateObject =
           error.statusText ||
           error.message ||
           'Error creating aggregate object',
+        headers: {}
+      };
+    }
+  };
+
+/**
+ * Import multiple aggregate objects using the new API structure
+ * Uses POST /api/Aggregate/Import endpoint with new AggregateCreateDTO structure
+ *
+ * @param client - HTTP client instance
+ * @param data - Aggregate creation data with user context
+ * @returns Import response
+ */
+export const importAggregateObjects =
+  (client = httpClient) =>
+  async (data: AggregateCreateDTO): Promise<ApiResponse<any | null>> => {
+    try {
+      const response = await client.post<any>(`${basePath}/Import`, data);
+
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers
+      };
+    } catch (error: any) {
+      logError('importAggregateObjects', error);
+      return {
+        data: null,
+        status: error.status || 500,
+        statusText:
+          error.statusText ||
+          error.message ||
+          'Error importing aggregate objects',
         headers: {}
       };
     }

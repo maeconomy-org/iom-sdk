@@ -34,7 +34,7 @@ export const requestBaseAuth =
   (client = httpClient) =>
   async (): Promise<ApiResponse<AuthResponse | null>> => {
     try {
-      const response = await client.get<AuthResponse>('/api/cert');
+      const response = await client.get<AuthResponse>('/api/User');
 
       return {
         data: response.data,
@@ -78,7 +78,7 @@ export const requestUuidAuth =
         };
       }
 
-      const response = await uuidClient.get<AuthResponse>('/api/cert');
+      const response = await uuidClient.get<AuthResponse>('/api/User');
 
       return {
         data: response.data,

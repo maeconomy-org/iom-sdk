@@ -21,7 +21,7 @@ const basePath = '/api/UUStatements';
  * This unified function handles all statement retrieval scenarios
  *
  * @param client - HTTP client instance
- * @param params - Statement query parameters (subject, predicate, object, softDeleted, createdBy)
+ * @param params - Statement query parameters (subject, predicate, object, softDeleted)
  * @returns List of statements matching the criteria
  */
 export const getStatements =
@@ -114,8 +114,7 @@ export const getStatementsByUuidAndPredicate =
       const statementParams: StatementQueryParams = {
         subject: validatedUuid,
         predicate: validatedPredicate,
-        softDeleted: params?.softDeleted,
-        createdBy: params?.createdBy
+        softDeleted: params?.softDeleted
       };
 
       return getStatements(client)(statementParams);

@@ -4,7 +4,9 @@ import { UUObjectDTO } from '../../src/types';
 // Mock the HTTP client
 const mockHttpClient = {
   get: jest.fn(),
+  getBinary: jest.fn(),
   post: jest.fn(),
+  postForm: jest.fn(),
   put: jest.fn(),
   delete: jest.fn(),
   config: {
@@ -38,7 +40,7 @@ describe('Object Service', () => {
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
-      const result = await objectService.getObjects()({
+      const result = await objectService.getObjects(mockHttpClient)({
         softDeleted: false
       });
 
@@ -58,7 +60,7 @@ describe('Object Service', () => {
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
-      const result = await objectService.getObjects()({
+      const result = await objectService.getObjects(mockHttpClient)({
         uuid: uuid
       });
 
@@ -82,7 +84,7 @@ describe('Object Service', () => {
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
-      await objectService.getObjects()({ softDeleted: true });
+      await objectService.getObjects(mockHttpClient)({ softDeleted: true });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith('/api/UUObject', {
         softDeleted: true
@@ -105,7 +107,8 @@ describe('Object Service', () => {
 
       mockHttpClient.post.mockResolvedValue(mockResponse);
 
-      const result = await objectService.createOrUpdateObject()(mockObject);
+      const result =
+        await objectService.createOrUpdateObject(mockHttpClient)(mockObject);
 
       expect(mockHttpClient.post).toHaveBeenCalledWith(
         '/api/UUObject',
@@ -127,7 +130,7 @@ describe('Object Service', () => {
 
       mockHttpClient.delete.mockResolvedValue(mockResponse);
 
-      const result = await objectService.softDeleteObject()(uuid);
+      const result = await objectService.softDeleteObject(mockHttpClient)(uuid);
 
       expect(mockHttpClient.delete).toHaveBeenCalledWith(
         `/api/UUObject/${uuid}`

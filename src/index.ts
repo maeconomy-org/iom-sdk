@@ -58,12 +58,16 @@ export {
 export {
   createUUID,
   getOwnedUUIDs,
-  getAllUUIDOwners
+  getUUIDRecord,
+  updateUUIDRecordMeta,
+  authorizeUUIDRecord
 } from './services/uuid-service';
 
 export {
   findByUUID as aggregateFindByUUID,
-  getAggregateEntities
+  getAggregateEntities,
+  createAggregateObject,
+  importAggregateObjects
 } from './services/aggregate-service';
 
 export { requestBaseAuth, requestUuidAuth } from './services/common-service';
@@ -83,7 +87,9 @@ export {
 
 export {
   findByUUID as aggregateSearch,
-  getAggregateEntities as searchAggregateEntities
+  getAggregateEntities as searchAggregateEntities,
+  createAggregateObject as createAggregate,
+  importAggregateObjects as importAggregates
 } from './facade/aggregate-facade';
 
 export {

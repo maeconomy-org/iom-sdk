@@ -114,7 +114,7 @@ describe('HTTP Client', () => {
       const data = { name: 'Test' };
       const result = await client.post<any>('/test', data);
 
-      expect(axiosInstance.post).toHaveBeenCalledWith('/test', data);
+      expect(axiosInstance.post).toHaveBeenCalledWith('/test', data, undefined);
       expect(result).toEqual({
         data: mockResponse.data,
         status: mockResponse.status,

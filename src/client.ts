@@ -9,6 +9,7 @@ import {
   UUStatementDTO,
   ComplexObjectCreationInput,
   AggregateFindDTO,
+  AggregateCreateDTO,
   StatementQueryParams,
   Predicate,
   UUAddressDTO
@@ -99,8 +100,10 @@ export const createClient = (config: IOBClientConfig) => {
       findByUUID: (uuid: UUID) => aggregateFacade.findByUUID()(uuid),
       getAggregateEntities: (params?: AggregateFindDTO) =>
         aggregateFacade.getAggregateEntities()(params),
-      createAggregateObject: (data: any) =>
-        aggregateFacade.createAggregateObject()(data)
+      createAggregateObject: (data: AggregateCreateDTO) =>
+        aggregateFacade.createAggregateObject()(data),
+      importAggregateObjects: (data: AggregateCreateDTO) =>
+        aggregateFacade.importAggregateObjects()(data)
     },
 
     // Entity creation and management
@@ -256,11 +259,15 @@ export const createClient = (config: IOBClientConfig) => {
         statementService.softDeleteStatement()(statement)
     },
 
-    // UUID generation
+    // UUID generation and management
     uuid: {
       create: () => uuidService.createUUID()(),
       getOwned: () => uuidService.getOwnedUUIDs()(),
-      getAllOwners: () => uuidService.getAllUUIDOwners()()
+      getRecord: (uuid: UUID) => uuidService.getUUIDRecord()(uuid),
+      updateRecordMeta: (params: { uuid?: UUID; nodeType: string }) =>
+        uuidService.updateUUIDRecordMeta()(params),
+      authorize: (params: { userUuid: UUID; resourceId: UUID }) =>
+        uuidService.authorizeUUIDRecord()(params)
     },
 
     // Addresses

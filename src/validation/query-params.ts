@@ -24,8 +24,7 @@ export const validateQueryParams = (
 
   const validatedParams = {
     uuid: params.uuid ? validate(z.string().uuid(), params.uuid) : undefined,
-    softDeleted: validate(z.boolean().optional(), params.softDeleted),
-    createdBy: validate(z.string().optional(), params.createdBy)
+    softDeleted: validate(z.boolean().optional(), params.softDeleted)
   };
 
   // Remove undefined values from params
@@ -58,8 +57,7 @@ export const validateStatementQueryParams = (
     object: params.object
       ? validate(z.string().uuid(), params.object)
       : undefined,
-    softDeleted: validate(z.boolean().optional(), params.softDeleted),
-    createdBy: validate(z.string().optional(), params.createdBy)
+    softDeleted: validate(z.boolean().optional(), params.softDeleted)
   };
 
   // Remove undefined values from params
@@ -91,7 +89,6 @@ export const validateAggregateParams = (
       params.size !== undefined
         ? validate(z.number().int().min(1).max(1000), params.size)
         : undefined,
-    createdBy: validate(z.string().optional(), params.createdBy),
     hasChildrenFull: validate(z.boolean().optional(), params.hasChildrenFull),
     hasHistory: validate(z.boolean().optional(), params.hasHistory),
     hasParentUUIDFilter: validate(

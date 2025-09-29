@@ -68,3 +68,26 @@ export const createAggregateObject =
       };
     }
   };
+
+/**
+ * Import multiple aggregate objects
+ *
+ * @param client - HTTP client instance
+ * @param data - Aggregate creation data with user context
+ * @returns Import response
+ */
+export const importAggregateObjects =
+  (client = httpClient) =>
+  async (data: any): Promise<ApiResponse<any | null>> => {
+    try {
+      // Forward to the service
+      return aggregateService.importAggregateObjects(client)(data);
+    } catch (error: any) {
+      logError('importAggregateObjects (aggregate facade)', error);
+      return {
+        data: null,
+        status: 500,
+        statusText: error.message || 'Error importing aggregate objects'
+      };
+    }
+  };

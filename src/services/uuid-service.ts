@@ -27,47 +27,8 @@ const getUuidServiceClient = (client = httpClient, baseURL?: string) => {
 };
 
 /**
- * Get all UUID ownership information
- *
- * @param client - HTTP client instance
- * @param baseURL - Optional base URL for the UUID service (different from main API)
- * @returns All UUID ownership data
- */
-export const getAllUUIDOwners =
-  (client = httpClient, baseURL?: string) =>
-  async (): Promise<ApiResponse<any>> => {
-    try {
-      const uuidClient = getUuidServiceClient(client, baseURL);
-      const url = '/api/UUIDOwner';
-      return await uuidClient.get(url);
-    } catch (error: any) {
-      logError('getAllUUIDOwners', error);
-      throw error;
-    }
-  };
-
-/**
- * Create a new UUID
- *
- * @param client - HTTP client instance
- * @param baseURL - Optional base URL for the UUID service (different from main API)
- * @returns The newly created UUID data
- */
-export const createUUID =
-  (client = httpClient, baseURL?: string) =>
-  async (): Promise<ApiResponse<{ uuid: UUID }>> => {
-    try {
-      const uuidClient = getUuidServiceClient(client, baseURL);
-      const url = '/api/UUIDOwner';
-      return await uuidClient.post(url);
-    } catch (error: any) {
-      logError('createUUID', error);
-      throw error;
-    }
-  };
-
-/**
  * Get UUIDs owned by the current user/client
+ * Uses /api/UUID/own endpoint from swagger-uuid.json
  *
  * @param client - HTTP client instance
  * @param baseURL - Optional base URL for the UUID service (different from main API)
@@ -78,10 +39,103 @@ export const getOwnedUUIDs =
   async (): Promise<ApiResponse<any>> => {
     try {
       const uuidClient = getUuidServiceClient(client, baseURL);
-      const url = '/api/UUIDOwner/own';
+      const url = '/api/UUID/own';
       return await uuidClient.get(url);
     } catch (error: any) {
       logError('getOwnedUUIDs', error);
+      throw error;
+    }
+  };
+
+/**
+ * Create a new UUID
+ * Updated to use /api/UUID endpoint from new swagger-uuid.json
+ *
+ * @param client - HTTP client instance
+ * @param baseURL - Optional base URL for the UUID service (different from main API)
+ * @returns The newly created UUID data
+ */
+export const createUUID =
+  (client = httpClient, baseURL?: string) =>
+  async (): Promise<ApiResponse<{ uuid: UUID }>> => {
+    try {
+      const uuidClient = getUuidServiceClient(client, baseURL);
+      const url = '/api/UUID';
+      return await uuidClient.post(url);
+    } catch (error: any) {
+      logError('createUUID', error);
+      throw error;
+    }
+  };
+
+/**
+ * Get UUID record by UUID
+ * Updated to use /api/UUID/{uuid} endpoint from new swagger-uuid.json
+ *
+ * @param client - HTTP client instance
+ * @param baseURL - Optional base URL for the UUID service (different from main API)
+ * @param uuid - UUID to find
+ * @returns UUID record data
+ */
+export const getUUIDRecord =
+  (client = httpClient, baseURL?: string) =>
+  async (uuid: UUID): Promise<ApiResponse<any>> => {
+    try {
+      const uuidClient = getUuidServiceClient(client, baseURL);
+      const url = `/api/UUID/${uuid}`;
+      return await uuidClient.get(url);
+    } catch (error: any) {
+      logError('getUUIDRecord', error);
+      throw error;
+    }
+  };
+
+/**
+ * Update UUID record metadata
+ * New endpoint from swagger-uuid.json
+ *
+ * @param client - HTTP client instance
+ * @param baseURL - Optional base URL for the UUID service (different from main API)
+ * @param params - UUID record metadata update parameters
+ * @returns Updated UUID record data
+ */
+export const updateUUIDRecordMeta =
+  (client = httpClient, baseURL?: string) =>
+  async (params: {
+    uuid?: UUID;
+    nodeType: string;
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const uuidClient = getUuidServiceClient(client, baseURL);
+      const url = '/api/UUID/UUIDRecordMeta';
+      return await uuidClient.put(url, params);
+    } catch (error: any) {
+      logError('updateUUIDRecordMeta', error);
+      throw error;
+    }
+  };
+
+/**
+ * Authorize UUID record access
+ * New endpoint from swagger-uuid.json
+ *
+ * @param client - HTTP client instance
+ * @param baseURL - Optional base URL for the UUID service (different from main API)
+ * @param params - Authorization parameters
+ * @returns Authorization response
+ */
+export const authorizeUUIDRecord =
+  (client = httpClient, baseURL?: string) =>
+  async (params: {
+    userUuid: UUID;
+    resourceId: UUID;
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const uuidClient = getUuidServiceClient(client, baseURL);
+      const url = '/api/UUID/authorize';
+      return await uuidClient.post(url, params);
+    } catch (error: any) {
+      logError('authorizeUUIDRecord', error);
       throw error;
     }
   };

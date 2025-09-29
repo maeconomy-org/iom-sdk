@@ -14,7 +14,7 @@ const basePath = '/api/UUFile';
  * This unified function replaces getAllFiles, getOwnFiles, and getFileByUuid
  *
  * @param client - HTTP client instance
- * @param params - Query parameters for filtering (uuid, softDeleted, createdBy)
+ * @param params - Query parameters for filtering (uuid, softDeleted)
  * @returns List of files matching the criteria, or single file if uuid is provided
  */
 export const getFiles =
