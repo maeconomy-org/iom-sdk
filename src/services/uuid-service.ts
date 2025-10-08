@@ -127,7 +127,7 @@ export const updateUUIDRecordMeta =
 export const authorizeUUIDRecord =
   (client = httpClient, baseURL?: string) =>
   async (params: {
-    userUuid: UUID;
+    userUUID: UUID;
     resourceId: UUID;
   }): Promise<ApiResponse<any>> => {
     try {

@@ -209,7 +209,7 @@ export interface ApiError {
  * Based on actual API response structure with certificate information
  */
 export interface AuthResponse {
-  userUuid: string;
+  userUUID: string;
   credentials: string;
   createdAt: string;
   certificateInfo: {
@@ -438,7 +438,7 @@ export interface AggregateUUPropertyValueCreateDTO {
 }
 
 export interface UserDetailsCustom {
-  userUuid?: string;
+  userUUID?: string;
   credentials?: any;
   createdAt?: string;
   enabled?: boolean;

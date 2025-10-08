@@ -266,7 +266,7 @@ export const createClient = (config: IOBClientConfig) => {
       getRecord: (uuid: UUID) => uuidService.getUUIDRecord()(uuid),
       updateRecordMeta: (params: { uuid?: UUID; nodeType: string }) =>
         uuidService.updateUUIDRecordMeta()(params),
-      authorize: (params: { userUuid: UUID; resourceId: UUID }) =>
+      authorize: (params: { userUUID: UUID; resourceId: UUID }) =>
         uuidService.authorizeUUIDRecord()(params)
     },
 
