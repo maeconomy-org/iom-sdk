@@ -25,12 +25,26 @@ export interface QueryParams {
   softDeleted?: boolean;
 }
 
-// Statement query parameters (based on UUStatementFindDTO from Swagger)
-export interface StatementQueryParams {
+// UUStatementFindDTO (from Swagger)
+export interface UUStatementFindDTO {
   subject?: UUID;
   predicate?: Predicate;
   object?: UUID;
   softDeleted?: boolean;
+}
+
+// Statement query parameters (based on UUStatementFindDTO from Swagger)
+export interface StatementQueryParams extends UUStatementFindDTO {}
+
+// UUStatementsPropertyValue Data Transfer Object
+export interface UUStatementsPropertyValue {
+  value?: string;
+}
+
+// UUStatementsProperty Data Transfer Object
+export interface UUStatementsProperty {
+  key?: string;
+  values?: UUStatementsPropertyValue[];
 }
 
 // UUStatement Data Transfer Object
@@ -38,6 +52,7 @@ export interface UUStatementDTO {
   subject: UUID;
   predicate: Predicate;
   object: UUID;
+  properties?: UUStatementsProperty[];
 }
 
 // UUProperty Data Transfer Object

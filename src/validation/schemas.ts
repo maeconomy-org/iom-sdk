@@ -17,6 +17,25 @@ export const objectDTOSchema = z.object({
 
 export type ObjectDTOSchemaType = z.infer<typeof objectDTOSchema>;
 
+// UUStatementsPropertyValue Validation Schema
+export const statementsPropertyValueSchema = z.object({
+  value: z.string().optional()
+});
+
+export type StatementsPropertyValueSchemaType = z.infer<
+  typeof statementsPropertyValueSchema
+>;
+
+// UUStatementsProperty Validation Schema
+export const statementsPropertySchema = z.object({
+  key: z.string().optional(),
+  values: z.array(statementsPropertyValueSchema).optional()
+});
+
+export type StatementsPropertySchemaType = z.infer<
+  typeof statementsPropertySchema
+>;
+
 // Statement DTO Validation Schema
 export const statementDTOSchema = z.object({
   subject: uuidSchema,
@@ -27,7 +46,8 @@ export const statementDTOSchema = z.object({
       };
     }
   }),
-  object: uuidSchema
+  object: uuidSchema,
+  properties: z.array(statementsPropertySchema).optional()
 });
 
 export type StatementDTOSchemaType = z.infer<typeof statementDTOSchema>;
