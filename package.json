@@ -1,8 +1,8 @@
 {
   "version": "0.1.0",
-  "name": "iob-client",
+  "name": "iom-sdk",
   "author": "ReCheck B.V.",
-  "description": "ReCheck IOB Client",
+  "description": "ReCheck IoM SDK",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

@@ -1,6 +1,6 @@
-# IOB Client Tests
+# IoM Client Tests
 
-This directory contains automated tests for the IOB client library. These tests help ensure that future changes don't break existing functionality.
+This directory contains automated tests for the IoM client library. These tests help ensure that future changes don't break existing functionality.
 
 ## Test Structure
 
@@ -31,10 +31,10 @@ For E2E tests, you need to provide certificates and API configuration:
 
 1. Create a `.env.test` file in the project root with the following content:
 ```
-IOB_API_URL=https://api-test.example.com
-IOB_CERT_PATH=./tests/certs/client.crt
-IOB_KEY_PATH=./tests/certs/client.key
-IOB_REJECT_UNAUTHORIZED=false
+IOM_API_URL=https://api-test.example.com
+IOM_CERT_PATH=./tests/certs/client.crt
+IOM_KEY_PATH=./tests/certs/client.key
+IOM_REJECT_UNAUTHORIZED=false
 ```
 
 2. Place your test certificates in the `tests/certs` directory

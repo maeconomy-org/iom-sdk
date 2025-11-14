@@ -111,7 +111,7 @@ export interface UUAddressDTO {
 }
 
 // Configure options for the client
-export interface IOBClientConfig {
+export interface ClientConfig {
   baseUrl: string;
   uuidServiceBaseUrl?: string; // Optional separate base URL for UUID service
   certificate?: {

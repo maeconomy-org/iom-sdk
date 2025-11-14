@@ -1,5 +1,5 @@
 import {
-  IOBClientConfig,
+  ClientConfig,
   UUID,
   QueryParams,
   UUObjectDTO,
@@ -30,11 +30,11 @@ import * as addressService from './services/address-service';
 import * as fileFacade from './facade/file-facade';
 
 /**
- * Initialize the IOB client with the given configuration
+ * Initialize the client with the given configuration
  *
  * @param config - Client configuration including baseUrl and optional certificate
  */
-export const initializeClient = (config: IOBClientConfig): void => {
+export const initializeClient = (config: ClientConfig): void => {
   setHttpClient(config);
 
   // Configure logger if debug options are provided
@@ -43,32 +43,7 @@ export const initializeClient = (config: IOBClientConfig): void => {
   }
 };
 
-/**
- * Create a fully configured IOB client with API methods
- *
- * Example:
- * ```typescript
- * const iobClient = createClient({
- *   baseUrl: 'https://api.example.com',
- *   uuidServiceBaseUrl: 'https://uuid-service.example.com', // Optional
- *   certificate: {
- *     cert: '-----BEGIN CERTIFICATE-----\n...',
- *     key: '-----BEGIN PRIVATE KEY-----\n...'
- *   },
- *   debug: {
- *     enabled: true,
- *     logLevel: 'info'
- *   }
- * });
- *
- * // Then use it:
- * const entities = await iobClient.aggregate.findByUUID('uuid-here');
- * ```
- *
- * @param config - Client configuration
- * @returns A simplified client with one way to do each operation
- */
-export const createClient = (config: IOBClientConfig) => {
+export const createClient = (config: ClientConfig) => {
   // Initialize the client with the given configuration
   setHttpClient(config);
 
@@ -83,7 +58,7 @@ export const createClient = (config: IOBClientConfig) => {
       /**
        * Enable or disable debug mode at runtime
        */
-      configure: (options: IOBClientConfig['debug']) => {
+      configure: (options: ClientConfig['debug']) => {
         configureLogger(options);
       }
     },

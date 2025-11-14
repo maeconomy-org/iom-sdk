@@ -1,4 +1,4 @@
-import { IOBClientConfig } from '@/types';
+import { ClientConfig } from '@/types';
 
 // Default configuration
 let debugConfig = {
@@ -11,7 +11,7 @@ let debugConfig = {
 /**
  * Configure the logger with the provided debug options
  */
-export const configureLogger = (config?: IOBClientConfig['debug']): void => {
+export const configureLogger = (config?: ClientConfig['debug']): void => {
   if (!config) {
     return;
   }
@@ -41,7 +41,7 @@ export const log = (
     return;
   }
 
-  const formattedMessage = `[IOB Client] ${message}`;
+  const formattedMessage = `[IoM Client] ${message}`;
 
   // Log to console if enabled
   if (debugConfig.logToConsole) {

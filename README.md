@@ -1,12 +1,12 @@
-# IOB Client
+# IoM Client SDK
 
-A TypeScript client library for interacting with the Internet of Buildings (IOB) API.
+A TypeScript client library for interacting with the Internet of Buildings (IoM) API.
 
 
 ## Installation
 
 ```bash
-npm install iob-client
+npm install iom-sdk
 ```
 
 ## License

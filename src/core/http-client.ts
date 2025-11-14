@@ -1,16 +1,16 @@
 import * as https from 'https';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { ApiError, ApiResponse, IOBClientConfig } from '@/types';
+import { ApiError, ApiResponse, ClientConfig } from '@/types';
 import { configureLogger, logHttp, logError } from './logger';
 
 /**
- * Create a HTTP client for making API requests to the IOB backend
+ * Create a HTTP client for making API requests to the IoM backend
  *
  * @param config - Configuration for the client
  * @returns An object with methods for making HTTP requests
  */
-export const createHttpClient = (config: IOBClientConfig) => {
+export const createHttpClient = (config: ClientConfig) => {
   // Configure logger if debug options are provided
   if (config.debug) {
     configureLogger(config.debug);
@@ -292,7 +292,7 @@ export const createHttpClient = (config: IOBClientConfig) => {
 };
 
 // Create a default HttpClient with empty config for internal reference
-// This will be properly initialized when the IOB client is created
+// This will be properly initialized when the client is created
 export let httpClient = createHttpClient({ baseUrl: '' });
 
 /**
@@ -300,6 +300,6 @@ export let httpClient = createHttpClient({ baseUrl: '' });
  *
  * @param config - The client configuration
  */
-export const setHttpClient = (config: IOBClientConfig): void => {
+export const setHttpClient = (config: ClientConfig): void => {
   httpClient = createHttpClient(config);
 };
