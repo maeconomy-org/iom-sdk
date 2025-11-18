@@ -12,7 +12,8 @@ export const objectDTOSchema = z.object({
   name: z.string().optional(),
   abbreviation: z.string().optional(),
   version: z.string().optional(),
-  description: z.string().optional()
+  description: z.string().optional(),
+  isTemplate: z.boolean().optional()
 });
 
 export type ObjectDTOSchemaType = z.infer<typeof objectDTOSchema>;

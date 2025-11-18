@@ -7,8 +7,8 @@ export enum Predicate {
   IS_CHILD_OF = 'IS_CHILD_OF',
   IS_INPUT_OF = 'IS_INPUT_OF',
   IS_OUTPUT_OF = 'IS_OUTPUT_OF',
-  IS_MODEL_OF = 'IS_MODEL_OF',
-  IS_INSTANCE_MODEL_OF = 'IS_INSTANCE_MODEL_OF',
+  IS_SOURCE_TEMPLATE_OF = 'IS_SOURCE_TEMPLATE_OF',
+  IS_TEMPLATE_INSTANCE_OF = 'IS_TEMPLATE_INSTANCE_OF',
   IS_PROPERTY_OF = 'IS_PROPERTY_OF',
   HAS_PROPERTY = 'HAS_PROPERTY',
   IS_VALUE_OF = 'IS_VALUE_OF',
@@ -85,6 +85,7 @@ export interface UUObjectDTO {
   name?: string;
   abbreviation?: string;
   description?: string;
+  isTemplate?: boolean;
 }
 
 // UUFile Data Transfer Object
@@ -350,13 +351,14 @@ export interface AggregateEntity {
   abbreviation?: string;
   version?: string;
   description?: string;
+  isTemplate?: boolean;
   address?: AggregateUUAddress;
   parents?: string[];
   children?: string[];
   inputs?: string[];
   outputs?: string[];
-  models?: string[];
-  instances?: string[];
+  sourceTemplates?: string[];
+  templateInstances?: string[];
   files?: AggregateUUFile[];
   properties?: AggregateUUProperty[];
   history?: AggregateUUObject[];
@@ -405,6 +407,7 @@ export interface AggregateEntityCreateDTO {
   abbreviation?: string;
   version?: string;
   description?: string;
+  isTemplate?: boolean;
   // Parent UUIDs to establish parent-child relationships
   parents?: UUID[];
   address?: AggregateUUAddressCreateDTO;
@@ -536,4 +539,5 @@ export interface AggregateUUObject {
   abbreviation?: string;
   version?: string;
   description?: string;
+  isTemplate?: boolean;
 }
