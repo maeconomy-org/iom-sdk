@@ -253,17 +253,18 @@ export interface AuthResponse {
 // ============================================================================
 
 /**
- * Aggregate search parameters for the /api/Aggregate endpoint
+ * Aggregate search parameters for the /api/Aggregate/search endpoint
+ * Updated to support the new POST method with searchBy functionality
  */
 export interface AggregateFindDTO {
   page?: number;
   size?: number;
-  createdBy?: string;
   hasChildrenFull?: boolean;
   hasHistory?: boolean;
   hasParentUUIDFilter?: boolean;
   parentUUID?: string;
   searchTerm?: string;
+  searchBy?: Record<string, any>;
 }
 
 /**

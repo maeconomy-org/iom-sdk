@@ -50,10 +50,10 @@ export const findByUUID =
 
 /**
  * Search aggregate entities with pagination and filtering
- * Uses the new /api/aggregate endpoint for advanced searching
+ * Uses the new /api/Aggregate/search endpoint with POST method for advanced searching
  *
  * @param client - HTTP client instance
- * @param params - Aggregate search parameters
+ * @param params - Aggregate search parameters including the new searchBy field
  * @returns Paginated list of aggregate entities
  */
 export const getAggregateEntities =
@@ -65,9 +65,10 @@ export const getAggregateEntities =
       // Validate parameters
       const cleanParams = validateAggregateParams(params);
 
-      const response = await client.get<PageAggregateEntity>(
-        basePath,
-        cleanParams
+      // Use POST method with the new /search endpoint
+      const response = await client.post<PageAggregateEntity>(
+        `${basePath}/search`,
+        cleanParams || {}
       );
 
       return {

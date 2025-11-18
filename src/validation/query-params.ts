@@ -98,7 +98,8 @@ export const validateAggregateParams = (
     parentUUID: params.parentUUID
       ? validate(z.string().uuid(), params.parentUUID)
       : undefined,
-    searchTerm: validate(z.string().optional(), params.searchTerm)
+    searchTerm: validate(z.string().optional(), params.searchTerm),
+    searchBy: validate(z.record(z.any()).optional(), params.searchBy)
   };
 
   // Remove undefined values from params
