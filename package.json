@@ -40,7 +40,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "prepublishOnly": "npm run lint && npm run test && npm run build",
-    "version": "npm run build && git add dist/",
+    "version": "npm run build",
     "postversion": "git push && git push --tags",
     "release:patch": "npm version patch",
     "release:minor": "npm version minor",

@@ -45,11 +45,19 @@ pnpm build
 
 # Bump version and create tag
 echo "📈 Bumping version ($VERSION_TYPE)..."
-npm version $VERSION_TYPE
+npm version $VERSION_TYPE --no-git-tag-version
 
 # Get the new version
 NEW_VERSION=$(node -p "require('./package.json').version")
 echo "✅ New version: v$NEW_VERSION"
+
+# Commit the version change and create tag
+echo "📝 Committing version change..."
+git add package.json pnpm-lock.json 2>/dev/null || git add package.json
+git commit -m "chore: bump version to v$NEW_VERSION"
+
+echo "🏷️ Creating git tag..."
+git tag "v$NEW_VERSION"
 
 # Push changes and tags
 echo "📤 Pushing changes and tags..."
