@@ -1,5 +1,5 @@
 {
-  "version": "0.1.6",
+  "version": "0.1.7",
   "name": "iom-sdk",
   "author": "MaEconomy Org",
   "description": "TypeScript SDK for Internet of Materials (IoM) - A client library for interacting with UUProtocol-based building/material management systems",
