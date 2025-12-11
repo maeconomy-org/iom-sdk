@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/iom-sdk.svg)](https://badge.fury.io/js/iom-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A TypeScript SDK for the Internet of Materials (IoM) - A client library for interacting with UUProtocol-based building/material management systems.
+A TypeScript SDK for the Internet of Materials (IoM) - A client library for interacting with UUProtocol based building/material management systems.
 
 ## Installation
 
