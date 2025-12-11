@@ -1,8 +1,27 @@
 {
   "version": "0.1.0",
   "name": "iom-sdk",
-  "author": "ReCheck B.V.",
-  "description": "ReCheck IoM SDK",
+  "author": "MaEconomy Org",
+  "description": "TypeScript SDK for Internet of Materials (IoM) - A client library for interacting with UUProtocol-based building/material management systems",
+  "keywords": [
+    "iom",
+    "iob",
+    "internet-of-buildings",
+    "internet-of-materials",
+    "uuprotocol",
+    "building-management",
+    "material-management",
+    "typescript",
+    "sdk"
+  ],
+  "homepage": "https://github.com/maeconomy-org/iom-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maeconomy-org/iom-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maeconomy-org/iom-sdk/issues"
+  },
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -20,7 +39,12 @@
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "prepublishOnly": "npm run lint && npm run test && npm run build"
+    "prepublishOnly": "npm run lint && npm run test && npm run build",
+    "version": "npm run build && git add dist/",
+    "postversion": "git push && git push --tags",
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major"
   },
   "dependencies": {
     "axios": "^1.6.0",

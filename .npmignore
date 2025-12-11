@@ -1,0 +1,33 @@
+# Source files
+src/
+tests/
+coverage/
+
+# Configuration files
+.eslintrc
+.prettierrc
+jest.config.cjs
+rollup.config.js
+tsconfig.json
+
+# Development files
+.github/
+memory-bank/
+docs/
+
+# Environment and cache
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git files
+.git/
+.gitignore
