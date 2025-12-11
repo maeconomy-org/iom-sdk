@@ -64,15 +64,7 @@ echo "📤 Pushing changes and tags..."
 git push origin $CURRENT_BRANCH
 git push origin --tags
 
-# Publish to npm
-echo "📦 Publishing to npm..."
-if ! npm whoami > /dev/null 2>&1; then
-    echo "❌ Error: Not logged into npm. Please run 'npm login' first."
-    exit 1
-fi
-
-npm publish --access public
-
-echo "🎉 Release v$NEW_VERSION published successfully!"
-echo "📦 Package is now available at: https://npmjs.com/package/iom-sdk"
-echo "📥 Install with: npm install iom-sdk"
+echo "🎉 Release v$NEW_VERSION created successfully!"
+echo "🚀 GitHub Actions will automatically publish to npm when the tag is pushed."
+echo "📦 Check https://github.com/maeconomy-org/iom-sdk/actions to monitor publishing."
+echo "📥 Once published, install with: npm install iom-sdk"
