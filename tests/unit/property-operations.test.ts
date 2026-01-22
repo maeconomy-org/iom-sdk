@@ -21,7 +21,7 @@ describe('Property Operations', () => {
 
   beforeEach(() => {
     client = createClient(mockConfig);
-    
+
     // Mock the node client methods
     jest.spyOn(client.node, 'addPropertyToObject').mockResolvedValue({
       data: { uuid: 'prop-123', key: 'color', value: 'blue' },
@@ -57,7 +57,9 @@ describe('Property Operations', () => {
     it('should get properties for object', async () => {
       const result = await client.node.getPropertiesForObject('obj-123');
 
-      expect(client.node.getPropertiesForObject).toHaveBeenCalledWith('obj-123', undefined);
+      expect(client.node.getPropertiesForObject).toHaveBeenCalledWith(
+        'obj-123'
+      );
       expect(result.data).toHaveLength(1);
       expect(result.data[0].key).toBe('color');
     });
@@ -69,16 +71,10 @@ describe('Property Value Operations', () => {
 
   beforeEach(() => {
     client = createClient(mockConfig);
-    
+
     // Mock the node client methods
     jest.spyOn(client.node, 'setValueForProperty').mockResolvedValue({
       data: { uuid: 'value-123', value: 'red', dataType: 'string' },
-      status: 200,
-      statusText: 'OK'
-    });
-
-    jest.spyOn(client.node, 'getValuesForProperty').mockResolvedValue({
-      data: [{ uuid: 'value-123', value: 'red', dataType: 'string' }],
       status: 200,
       statusText: 'OK'
     });
@@ -100,14 +96,6 @@ describe('Property Value Operations', () => {
         dataType: 'string'
       });
       expect(result.data.uuid).toBe('value-123');
-    });
-
-    it('should get values for property', async () => {
-      const result = await client.node.getValuesForProperty('prop-123');
-
-      expect(client.node.getValuesForProperty).toHaveBeenCalledWith('prop-123', undefined);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].value).toBe('red');
     });
   });
 });

@@ -1,185 +1,196 @@
-/**
- * Main SDK client with service-namespaced API
- * Provides a clean, organized interface to all IOB services
- */
-
+import axios, { AxiosInstance } from 'axios';
+import * as https from 'https';
 import { SDKConfig, validateSDKConfig } from './config';
-import { ServiceFactory, createServiceFactory } from './core/service-factory';
 import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
-import { AuthManager } from './core/auth-manager';
-import { TokenStorage } from './core/token-storage';
+import { AuthResponse, JWTToken } from './types';
+
+export type AuthChangeListener = (state: {
+  isAuthenticated: boolean;
+  user: AuthResponse | null;
+}) => void;
 
 /**
- * Main SDK client interface
+ * Simplified IOM Client
+ * acts as the single source of truth for auth state
  */
-export interface IOBClient {
-  // Service clients
-  auth: AuthServiceClient;
-  registry: RegistryServiceClient;
-  node: NodeServiceClient;
+export class Client {
+  private config: SDKConfig;
+  private axiosInstance: AxiosInstance;
+  private token: string | null = null;
+  private user: AuthResponse | null = null;
+  private listeners: Set<AuthChangeListener> = new Set();
 
-  // Direct service client access
-  getAuthClient(): AuthServiceClient;
-  getRegistryClient(): RegistryServiceClient;
-  getNodeClient(): NodeServiceClient;
+  public auth: AuthServiceClient;
+  public registry: RegistryServiceClient;
+  public node: NodeServiceClient;
 
-  // User-facing auth methods
-  login(): Promise<{
-    success: boolean;
-    token?: string;
-    expiresAt?: Date;
-    issuedAt?: Date;
-    user?: any;
-  }>;
-  logout(): Promise<void>;
-  isAuthenticated(): boolean;
-  getToken(): Promise<{
-    token: string;
-    expiresAt: Date;
-    issuedAt: Date;
-  } | null>;
-
-  // Management
-  getAuthManager(): AuthManager;
-  getTokenStorage(): TokenStorage;
-  destroy(): void;
-}
-
-/**
- * Main IOB SDK client implementation
- */
-class IOBClientImpl implements IOBClient {
-  private serviceFactory: ServiceFactory;
+  private readonly STORAGE_KEY = 'iom-auth-state';
 
   constructor(config: SDKConfig) {
-    // Validate configuration
     validateSDKConfig(config);
+    this.config = config;
 
-    // Create service factory
-    this.serviceFactory = createServiceFactory(config);
+    // Load initial state synchronously from localStorage if in browser
+    this.loadState();
+
+    // Initialize services with their own axios instances (each with proper baseURL)
+    this.auth = new AuthServiceClient(
+      config.auth,
+      config.errorHandling || {},
+      config.certificate
+    );
+    this.registry = new RegistryServiceClient(
+      config.registry,
+      config.errorHandling || {},
+      this.createServiceAxiosInstance(config.registry.baseUrl)
+    );
+    this.node = new NodeServiceClient(
+      config.node,
+      config.errorHandling || {},
+      this.createServiceAxiosInstance(config.node.baseUrl)
+    );
+
+    // Keep reference to node's axios for potential direct use
+    this.axiosInstance = this.node.getAxios();
   }
 
-  // ============================================================================
-  // SERVICE CLIENT ACCESS
-  // ============================================================================
+  private createServiceAxiosInstance(baseURL: string): AxiosInstance {
+    const instance = axios.create({
+      baseURL,
+      timeout: 30000
+    });
 
-  get auth(): AuthServiceClient {
-    return this.serviceFactory.getAuthClient();
-  }
+    // Request interceptor: add token
+    instance.interceptors.request.use(config => {
+      if (this.token) {
+        config.headers.Authorization = `Bearer ${this.token}`;
+      }
+      return config;
+    });
 
-  get registry(): RegistryServiceClient {
-    return this.serviceFactory.getRegistryClient();
-  }
-
-  get node(): NodeServiceClient {
-    return this.serviceFactory.getNodeClient();
-  }
-
-  // ============================================================================
-  // DIRECT SERVICE CLIENT ACCESS
-  // ============================================================================
-
-  getAuthClient(): AuthServiceClient {
-    return this.serviceFactory.getAuthClient();
-  }
-
-  getRegistryClient(): RegistryServiceClient {
-    return this.serviceFactory.getRegistryClient();
-  }
-
-  getNodeClient(): NodeServiceClient {
-    return this.serviceFactory.getNodeClient();
-  }
-
-  // ============================================================================
-  // USER-FACING AUTH METHODS
-  // ============================================================================
-
-  /**
-   * User-initiated login - performs mTLS authentication
-   */
-  async login(): Promise<{
-    success: boolean;
-    token?: string;
-    expiresAt?: Date;
-    issuedAt?: Date;
-    user?: any;
-  }> {
-    const authManager = this.serviceFactory.getAuthManager();
-    const token = await authManager.login();
-    const authState = authManager.getAuthState();
-    return token
-      ? {
-          success: true,
-          token: token.token,
-          expiresAt: token.expiresAt,
-          issuedAt: token.issuedAt,
-          user: authState.user
+    // Response interceptor: handle 401
+    instance.interceptors.response.use(
+      response => response,
+      error => {
+        if (error.response?.status === 401) {
+          this.logout();
         }
-      : { success: false };
+        return Promise.reject(error);
+      }
+    );
+
+    // If Node.js and certificate provided, add httpsAgent
+    if (typeof window === 'undefined' && this.config.certificate) {
+      instance.defaults.httpsAgent = new https.Agent({
+        cert: this.config.certificate.cert,
+        key: this.config.certificate.key,
+        rejectUnauthorized: true
+      });
+    }
+
+    return instance;
   }
 
-  /**
-   * User-initiated logout
-   */
-  async logout(): Promise<void> {
-    const authManager = this.serviceFactory.getAuthManager();
-    await authManager.logout();
-  }
-
-  /**
-   * Check if user is currently authenticated
-   */
-  isAuthenticated(): boolean {
-    const authManager = this.serviceFactory.getAuthManager();
-    return authManager.isAuthenticated();
-  }
-
-  /**
-   * Get current JWT token
-   */
-  async getToken(): Promise<{
-    token: string;
-    expiresAt: Date;
-    issuedAt: Date;
-  } | null> {
-    const authManager = this.serviceFactory.getAuthManager();
-    const tokenString = await authManager.getValidToken();
-    if (tokenString) {
-      const authState = authManager.getAuthState();
-      if (authState.token) {
-        return {
-          token: authState.token.token,
-          expiresAt: authState.token.expiresAt,
-          issuedAt: authState.token.issuedAt
-        };
+  private loadState(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        try {
+          const { token, user } = JSON.parse(stored);
+          this.token = token;
+          this.user = user;
+        } catch (e) {
+          localStorage.removeItem(this.STORAGE_KEY);
+        }
       }
     }
-    return null;
   }
 
-  // ============================================================================
-  // MANAGEMENT
-  // ============================================================================
-
-  getAuthManager(): AuthManager {
-    return this.serviceFactory.getAuthManager();
+  private saveState(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (this.token) {
+        localStorage.setItem(
+          this.STORAGE_KEY,
+          JSON.stringify({ token: this.token, user: this.user })
+        );
+      } else {
+        localStorage.removeItem(this.STORAGE_KEY);
+      }
+    }
+    this.notifyListeners();
   }
 
-  getTokenStorage(): TokenStorage {
-    return this.serviceFactory.getTokenStorage();
+  private notifyListeners(): void {
+    const state = { isAuthenticated: this.isAuthenticated(), user: this.user };
+    this.listeners.forEach(l => l(state));
   }
 
-  destroy(): void {
-    this.serviceFactory.destroy();
+  public onAuthStateChange(listener: AuthChangeListener): () => void {
+    this.listeners.add(listener);
+    // Initial call
+    listener({ isAuthenticated: this.isAuthenticated(), user: this.user });
+    return () => this.listeners.delete(listener);
+  }
+
+  public async login(): Promise<{ success: boolean; user?: AuthResponse }> {
+    try {
+      const response = await this.auth.login();
+      this.token = response.token;
+      this.user = response.user || null;
+      this.saveState();
+      return { success: true, user: this.user || undefined };
+    } catch (error) {
+      this.logout();
+      return { success: false };
+    }
+  }
+
+  public logout(): void {
+    this.token = null;
+    this.user = null;
+    this.saveState();
+  }
+
+  public isAuthenticated(): boolean {
+    if (!this.token) return false;
+
+    // Check token expiry
+    try {
+      const payload = JSON.parse(atob(this.token.split('.')[1]));
+      if (payload.exp && Date.now() >= payload.exp * 1000) {
+        this.logout();
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  public getUser(): AuthResponse | null {
+    return this.user;
+  }
+
+  public getToken(): string | null {
+    if (!this.isAuthenticated()) {
+      return null;
+    }
+    return this.token;
+  }
+
+  public getAxios(): AxiosInstance {
+    return this.axiosInstance;
   }
 }
 
 /**
- * Create a new IOB SDK client with the provided configuration
+ * Initialize the Client
  */
-export function createClient(config: SDKConfig): IOBClient {
-  return new IOBClientImpl(config);
+export function initClient(config: SDKConfig): Client {
+  return new Client(config);
 }
+
+// Keep createClient for backward compatibility but mark as deprecated or just use it
+export const createClient = initClient;

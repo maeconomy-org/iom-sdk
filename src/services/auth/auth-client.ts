@@ -1,54 +1,46 @@
-/**
- * Auth service client for mTLS authentication
- * Handles login and token acquisition from the auth service
- */
-
-import { BaseServiceClient } from '../../core/base-service-client';
+import axios, { AxiosInstance } from 'axios';
+import * as https from 'https';
 import { ServiceConfig, ErrorHandlingConfig } from '../../config';
 import { AuthLoginResponse, JWTAuthResponse } from '../../types';
-import { logError } from '../../core/logger';
 import { calculateJWTExpiresIn } from '../../utils/jwt-utils';
 
-/**
- * Auth service client for mTLS authentication
- */
-export class AuthServiceClient extends BaseServiceClient {
+export class AuthServiceClient {
+  private axiosInstance: AxiosInstance;
+
   constructor(
     config: ServiceConfig,
-    errorHandling: ErrorHandlingConfig,
+    _errorHandling: ErrorHandlingConfig,
     certificate?: { cert: string; key: string }
   ) {
-    super(config, errorHandling, 'auth', certificate);
-  }
+    const axiosConfig: any = {
+      baseURL: config.baseUrl,
+      timeout: config.timeout || 30000
+    };
 
-  /**
-   * Perform mTLS login to get JWT token
-   * Expects AuthLoginResponse with user details and accessToken
-   */
-  async login(): Promise<JWTAuthResponse> {
-    try {
-      const response = await this.get<AuthLoginResponse>('/api/auth/login');
-      const { accessToken, user } = response.data;
-
-      const tokenString = accessToken.trim();
-      const expiresIn = calculateJWTExpiresIn(tokenString);
-
-      return {
-        token: tokenString,
-        expiresIn,
-        tokenType: 'Bearer',
-        user
-      };
-    } catch (error: any) {
-      logError('Login failed', error);
-      throw error;
+    if (certificate) {
+      axiosConfig.httpsAgent = new https.Agent({
+        cert: certificate.cert,
+        key: certificate.key,
+        rejectUnauthorized: true
+      });
     }
+
+    this.axiosInstance = axios.create(axiosConfig);
   }
 
-  /**
-   * Update error handling configuration
-   */
-  updateErrorHandling(newConfig: ErrorHandlingConfig): void {
-    this.errorHandling = newConfig;
+  async login(): Promise<JWTAuthResponse> {
+    const response =
+      await this.axiosInstance.get<AuthLoginResponse>('/api/auth/login');
+    const { accessToken, user } = response.data;
+
+    const tokenString = accessToken.trim();
+    const expiresIn = calculateJWTExpiresIn(tokenString);
+
+    return {
+      token: tokenString,
+      expiresIn,
+      tokenType: 'Bearer',
+      user
+    };
   }
 }

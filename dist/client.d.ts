@@ -1,42 +1,45 @@
-/**
- * Main SDK client with service-namespaced API
- * Provides a clean, organized interface to all IOB services
- */
+import { AxiosInstance } from 'axios';
 import { SDKConfig } from './config';
 import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
-import { AuthManager } from './core/auth-manager';
-import { TokenStorage } from './core/token-storage';
+import { AuthResponse } from './types';
+export type AuthChangeListener = (state: {
+    isAuthenticated: boolean;
+    user: AuthResponse | null;
+}) => void;
 /**
- * Main SDK client interface
+ * Simplified IOM Client
+ * acts as the single source of truth for auth state
  */
-export interface IOBClient {
+export declare class Client {
+    private config;
+    private axiosInstance;
+    private token;
+    private user;
+    private listeners;
     auth: AuthServiceClient;
     registry: RegistryServiceClient;
     node: NodeServiceClient;
-    getAuthClient(): AuthServiceClient;
-    getRegistryClient(): RegistryServiceClient;
-    getNodeClient(): NodeServiceClient;
+    private readonly STORAGE_KEY;
+    constructor(config: SDKConfig);
+    private createServiceAxiosInstance;
+    private loadState;
+    private saveState;
+    private notifyListeners;
+    onAuthStateChange(listener: AuthChangeListener): () => void;
     login(): Promise<{
         success: boolean;
-        token?: string;
-        expiresAt?: Date;
-        issuedAt?: Date;
-        user?: any;
+        user?: AuthResponse;
     }>;
-    logout(): Promise<void>;
+    logout(): void;
     isAuthenticated(): boolean;
-    getToken(): Promise<{
-        token: string;
-        expiresAt: Date;
-        issuedAt: Date;
-    } | null>;
-    getAuthManager(): AuthManager;
-    getTokenStorage(): TokenStorage;
-    destroy(): void;
+    getUser(): AuthResponse | null;
+    getToken(): string | null;
+    getAxios(): AxiosInstance;
 }
 /**
- * Create a new IOB SDK client with the provided configuration
+ * Initialize the Client
  */
-export declare function createClient(config: SDKConfig): IOBClient;
+export declare function initClient(config: SDKConfig): Client;
+export declare const createClient: typeof initClient;

@@ -100,9 +100,6 @@ export declare class AuthManager {
     private scheduleTokenRefresh;
     private notifyAuthStateChange;
     /**
-     * Utility function to add delay
-     */
-    /**
      * Cleanup resources
      */
     destroy(): void;

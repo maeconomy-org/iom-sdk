@@ -69,8 +69,7 @@ describe('SDK Validation Tests', () => {
       expect(() =>
         validateSDKConfig({
           registry: { baseUrl: 'https://registry.example.com' },
-          node: { baseUrl: 'https://api.example.com' },
-          certificate: { cert: 'cert', key: 'key' }
+          node: { baseUrl: 'https://api.example.com' }
         } as any)
       ).toThrow();
 
@@ -78,8 +77,7 @@ describe('SDK Validation Tests', () => {
       expect(() =>
         validateSDKConfig({
           auth: { baseUrl: 'https://auth.example.com' },
-          node: { baseUrl: 'https://api.example.com' },
-          certificate: { cert: 'cert', key: 'key' }
+          node: { baseUrl: 'https://api.example.com' }
         } as any)
       ).toThrow();
 
@@ -87,17 +85,7 @@ describe('SDK Validation Tests', () => {
       expect(() =>
         validateSDKConfig({
           auth: { baseUrl: 'https://auth.example.com' },
-          registry: { baseUrl: 'https://registry.example.com' },
-          certificate: { cert: 'cert', key: 'key' }
-        } as any)
-      ).toThrow();
-
-      // Missing certificate
-      expect(() =>
-        validateSDKConfig({
-          auth: { baseUrl: 'https://auth.example.com' },
-          registry: { baseUrl: 'https://registry.example.com' },
-          node: { baseUrl: 'https://api.example.com' }
+          registry: { baseUrl: 'https://registry.example.com' }
         } as any)
       ).toThrow();
     });

@@ -1,229 +1,148 @@
-/**
- * Comprehensive tests for IOBClient
- * Tests main client interface and service access
- */
-
-import { createClient, IOBClient } from '../../src/client';
+import { jest } from '@jest/globals';
+import { createClient } from '../../src/client';
 import { SDKConfig } from '../../src/config';
 
-// Mock the service factory
-jest.mock('../../src/core/service-factory', () => {
-  const mockAuthClient = {
-    login: jest.fn().mockResolvedValue({ token: 'test', expiresIn: 3600 })
-  };
-
-  const mockRegistryClient = {
-    createUUID: jest.fn().mockResolvedValue({ uuid: 'test-uuid' })
-  };
-
-  const mockNodeClient = {
-    createObject: jest.fn().mockResolvedValue({ uuid: 'obj-uuid' })
-  };
-
-  const mockAuthManager = {
-    getValidToken: jest.fn().mockResolvedValue('valid-token'),
-    isAuthenticated: jest.fn().mockReturnValue(true),
-    destroy: jest.fn()
-  };
-
-  const mockTokenStorage = {
-    getToken: jest.fn().mockResolvedValue(null),
-    setToken: jest.fn().mockResolvedValue(undefined),
-    removeToken: jest.fn().mockResolvedValue(undefined),
-    isAvailable: jest.fn().mockReturnValue(true)
-  };
-
-  const createMockFactory = () => ({
-    getAuthClient: jest.fn().mockReturnValue(mockAuthClient),
-    getRegistryClient: jest.fn().mockReturnValue(mockRegistryClient),
-    getNodeClient: jest.fn().mockReturnValue(mockNodeClient),
-    getAuthManager: jest.fn().mockReturnValue(mockAuthManager),
-    getTokenStorage: jest.fn().mockReturnValue(mockTokenStorage),
-    destroy: jest.fn()
-  });
-
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
   return {
-    ServiceFactory: jest.fn().mockImplementation(createMockFactory),
-    createServiceFactory: jest.fn().mockImplementation(createMockFactory)
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    }
   };
-});
+})();
 
-describe('IOBClient', () => {
-  const createValidConfig = (): SDKConfig => ({
+describe('Client', () => {
+  const config: SDKConfig = {
     auth: { baseUrl: 'https://auth.example.com' },
     registry: { baseUrl: 'https://registry.example.com' },
-    node: { baseUrl: 'https://api.example.com' },
-    certificate: {
-      cert: 'test-cert',
-      key: 'test-key'
-    }
+    node: { baseUrl: 'https://node.example.com' }
+  };
+
+  beforeEach(() => {
+    // Setup localStorage mock
+    Object.defineProperty(global, 'window', {
+      value: { localStorage: localStorageMock },
+      writable: true
+    });
+    Object.defineProperty(global, 'localStorage', {
+      value: localStorageMock,
+      writable: true
+    });
+    localStorageMock.clear();
+    jest.clearAllMocks();
   });
 
-  describe('createClient', () => {
-    it('should create client with valid configuration', () => {
-      const config = createValidConfig();
-      const client = createClient(config);
+  afterEach(() => {
+    localStorageMock.clear();
+  });
 
+  describe('initialization', () => {
+    it('should initialize with valid config', () => {
+      const client = createClient(config);
       expect(client).toBeDefined();
-    });
-
-    it('should expose auth service client', () => {
-      const config = createValidConfig();
-      const client = createClient(config);
-
       expect(client.auth).toBeDefined();
-      expect(client.getAuthClient()).toBeDefined();
-    });
-
-    it('should expose registry service client', () => {
-      const config = createValidConfig();
-      const client = createClient(config);
-
       expect(client.registry).toBeDefined();
-      expect(client.getRegistryClient()).toBeDefined();
-    });
-
-    it('should expose node service client', () => {
-      const config = createValidConfig();
-      const client = createClient(config);
-
       expect(client.node).toBeDefined();
-      expect(client.getNodeClient()).toBeDefined();
     });
 
-    it('should expose auth manager', () => {
-      const config = createValidConfig();
+    it('should load state from localStorage in browser', () => {
+      // Create a non-expired token (expires in 1 hour)
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+      const tokenPayload = JSON.stringify({ exp, userUUID: 'user-123' });
+      const token = `header.${btoa(tokenPayload)}.signature`;
+
+      const mockState = {
+        token: token,
+        user: { userUUID: 'user-123' }
+      };
+
+      localStorageMock.setItem('iom-auth-state', JSON.stringify(mockState));
+
       const client = createClient(config);
-
-      expect(client.getAuthManager()).toBeDefined();
-    });
-
-    it('should expose token storage', () => {
-      const config = createValidConfig();
-      const client = createClient(config);
-
-      expect(client.getTokenStorage()).toBeDefined();
+      expect(client.getToken()).toBe(token);
+      expect(client.getUser()).toEqual(mockState.user);
+      expect(client.isAuthenticated()).toBe(true);
     });
   });
 
-  describe('Service Access', () => {
-    let client: IOBClient;
+  describe('auth state management', () => {
+    it('should notify listeners on auth state change', () => {
+      const client = createClient(config);
+      const listener = jest.fn();
 
-    beforeEach(() => {
-      client = createClient(createValidConfig());
-    });
+      client.onAuthStateChange(listener);
 
-    afterEach(() => {
-      client.destroy();
-    });
-
-    describe('auth', () => {
-      it('should provide access to auth service methods', async () => {
-        expect(client.auth).toBeDefined();
-        expect(typeof client.auth.login).toBe('function');
+      // Initial call on subscribe
+      expect(listener).toHaveBeenCalledWith({
+        isAuthenticated: false,
+        user: null
       });
+
+      // Simulate logout (even if already out)
+      client.logout();
+      expect(listener).toHaveBeenCalledTimes(2);
     });
 
-    describe('registry', () => {
-      it('should provide access to registry service methods', async () => {
-        expect(client.registry).toBeDefined();
-        expect(typeof client.registry.createUUID).toBe('function');
-      });
-    });
+    it('should clear state on logout', () => {
+      const client = createClient(config);
 
-    describe('node', () => {
-      it('should provide access to node service methods', async () => {
-        expect(client.node).toBeDefined();
-        expect(typeof client.node.createObject).toBe('function');
-      });
+      // Mock some internal state
+      (client as any).token = 'token';
+      (client as any).user = { uuid: '123' };
+
+      client.logout();
+
+      expect(client.getToken()).toBeNull();
+      expect(client.getUser()).toBeNull();
+      expect(client.isAuthenticated()).toBe(false);
     });
   });
 
+  describe('token expiry checking', () => {
+    it('should reject expired tokens', () => {
+      // Create an expired token
+      const exp = Math.floor(Date.now() / 1000) - 3600; // expired 1 hour ago
+      const tokenPayload = JSON.stringify({ exp, userUUID: 'user-123' });
+      const expiredToken = `header.${btoa(tokenPayload)}.signature`;
 
-  describe('destroy', () => {
-    it('should cleanup resources', () => {
-      const client = createClient(createValidConfig());
-
-      expect(() => client.destroy()).not.toThrow();
-    });
-
-    it('should be safe to call multiple times', () => {
-      const client = createClient(createValidConfig());
-
-      client.destroy();
-      expect(() => client.destroy()).not.toThrow();
-    });
-  });
-
-  describe('Configuration Options', () => {
-    it('should accept configuration with tokenStorage', () => {
-      const config: SDKConfig = {
-        ...createValidConfig(),
-        tokenStorage: 'memory'
+      const mockState = {
+        token: expiredToken,
+        user: { userUUID: 'user-123' }
       };
+
+      localStorageMock.setItem('iom-auth-state', JSON.stringify(mockState));
 
       const client = createClient(config);
-      expect(client).toBeDefined();
 
-      client.destroy();
+      // Should auto-logout expired token
+      expect(client.isAuthenticated()).toBe(false);
+      expect(client.getToken()).toBeNull();
     });
 
-    it('should accept configuration with errorHandling', () => {
-      const config: SDKConfig = {
-        ...createValidConfig(),
-        errorHandling: {
-          debug: true,
-          autoRetryAuth: false
-        }
+    it('should accept valid tokens', () => {
+      // Create a valid token
+      const exp = Math.floor(Date.now() / 1000) + 3600; // expires in 1 hour
+      const tokenPayload = JSON.stringify({ exp, userUUID: 'user-123' });
+      const validToken = `header.${btoa(tokenPayload)}.signature`;
+
+      const mockState = {
+        token: validToken,
+        user: { userUUID: 'user-123' }
       };
+
+      localStorageMock.setItem('iom-auth-state', JSON.stringify(mockState));
 
       const client = createClient(config);
-      expect(client).toBeDefined();
-
-      client.destroy();
-    });
-
-    it('should accept configuration with custom timeouts', () => {
-      const config: SDKConfig = {
-        ...createValidConfig(),
-        auth: { baseUrl: 'https://auth.example.com', timeout: 60000 },
-        registry: { baseUrl: 'https://registry.example.com', timeout: 30000 },
-        node: { baseUrl: 'https://api.example.com', timeout: 120000 }
-      };
-
-      const client = createClient(config);
-      expect(client).toBeDefined();
-
-      client.destroy();
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle missing optional configuration', () => {
-      const minimalConfig: SDKConfig = {
-        auth: { baseUrl: 'https://auth.example.com' },
-        registry: { baseUrl: 'https://registry.example.com' },
-        node: { baseUrl: 'https://api.example.com' },
-        certificate: { cert: 'cert', key: 'key' }
-      };
-
-      const client = createClient(minimalConfig);
-      expect(client).toBeDefined();
-
-      client.destroy();
-    });
-
-    it('should provide consistent service instances', () => {
-      const client = createClient(createValidConfig());
-
-      const auth1 = client.auth;
-      const auth2 = client.auth;
-      const auth3 = client.getAuthClient();
-
-      expect(auth1).toBe(auth2);
-      expect(auth1).toBe(auth3);
-
-      client.destroy();
+      expect(client.isAuthenticated()).toBe(true);
+      expect(client.getToken()).toBe(validToken);
     });
   });
 });
