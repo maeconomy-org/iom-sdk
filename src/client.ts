@@ -4,7 +4,7 @@ import { SDKConfig, validateSDKConfig } from './config';
 import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
-import { AuthResponse, JWTToken } from './types';
+import { AuthResponse } from './types';
 
 export type AuthChangeListener = (state: {
   isAuthenticated: boolean;
@@ -154,7 +154,9 @@ export class Client {
   }
 
   public isAuthenticated(): boolean {
-    if (!this.token) return false;
+    if (!this.token) {
+      return false;
+    }
 
     // Check token expiry
     try {

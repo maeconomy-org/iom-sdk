@@ -218,7 +218,9 @@ export class NodeServiceClient {
     formData.append('file', file);
     if (metadata) {
       Object.entries(metadata).forEach(([key, value]) => {
-        if (value !== undefined) formData.append(key, String(value));
+        if (value !== undefined) {
+          formData.append(key, String(value));
+        }
       });
     }
     const response = await this.axios.post<UUFileDTO>('/api/UUFile', formData, {
@@ -438,7 +440,9 @@ export class NodeServiceClient {
     objectUuid: UUID,
     property: Partial<UUPropertyDTO> & { key: string }
   ): Promise<ApiResponse<UUPropertyDTO>> {
-    if (!this.registryClient) throw new Error('Registry client not available');
+    if (!this.registryClient) {
+      throw new Error('Registry client not available');
+    }
 
     // Simple validation
     const validatedObjectUuid = z.string().uuid().parse(objectUuid);
@@ -475,7 +479,9 @@ export class NodeServiceClient {
       predicate: Predicate.HAS_PROPERTY,
       ...params
     });
-    if (!statements.length) return { data: [], status: 200, statusText: 'OK' };
+    if (!statements.length) {
+      return { data: [], status: 200, statusText: 'OK' };
+    }
 
     const properties: UUPropertyDTO[] = [];
     for (const statement of statements) {
@@ -484,7 +490,9 @@ export class NodeServiceClient {
           uuid: statement.object,
           ...params
         });
-        if (p[0]) properties.push(p[0]);
+        if (p[0]) {
+          properties.push(p[0]);
+        }
       } catch (e) {}
     }
     return { data: properties, status: 200, statusText: 'OK' };
@@ -494,7 +502,9 @@ export class NodeServiceClient {
     propertyUuid: UUID,
     value: Partial<UUPropertyValueDTO>
   ): Promise<ApiResponse<UUPropertyValueDTO>> {
-    if (!this.registryClient) throw new Error('Registry client not available');
+    if (!this.registryClient) {
+      throw new Error('Registry client not available');
+    }
 
     const validatedPropertyUuid = z.string().uuid().parse(propertyUuid);
 

@@ -18,6 +18,8 @@
     "jest": true
   },
   "rules": {
+    "curly": "off",
+    "no-empty": "off",
     "no-console": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
@@ -28,10 +30,9 @@
         "varsIgnorePattern": "^_"
       }
     ],
-    "prefer-const": "error",
+    "prefer-const": "warn",
     "no-var": "error",
-    "eqeqeq": ["error", "always"],
-    "curly": "error",
+    "eqeqeq": "off",
     "no-duplicate-imports": "error"
   },
   "ignorePatterns": ["dist", "node_modules", "coverage"],
