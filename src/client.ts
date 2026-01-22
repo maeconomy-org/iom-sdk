@@ -1,262 +1,185 @@
-import {
-  ClientConfig,
-  UUID,
-  QueryParams,
-  UUObjectDTO,
-  UUPropertyDTO,
-  UUPropertyValueDTO,
-  UUFileDTO,
-  UUStatementDTO,
-  ComplexObjectCreationInput,
-  AggregateFindDTO,
-  AggregateCreateDTO,
-  StatementQueryParams,
-  Predicate,
-  UUAddressDTO
-} from './types';
-import { setHttpClient, configureLogger } from './core';
+/**
+ * Main SDK client with service-namespaced API
+ * Provides a clean, organized interface to all IOB services
+ */
 
-// Static imports instead of dynamic
-import * as objectService from './services/object-service';
-import * as statementService from './services/statement-service';
-import * as propertyService from './services/property-service';
-import * as propertyValueService from './services/property-value-service';
-import * as fileService from './services/file-service';
-import * as uuidService from './services/uuid-service';
-import * as objectFacade from './facade/object-facade';
-import * as commonFacade from './facade/common-facade';
-import * as aggregateFacade from './facade/aggregate-facade';
-import * as addressService from './services/address-service';
-import * as fileFacade from './facade/file-facade';
+import { SDKConfig, validateSDKConfig } from './config';
+import { ServiceFactory, createServiceFactory } from './core/service-factory';
+import { AuthServiceClient } from './services/auth/auth-client';
+import { RegistryServiceClient } from './services/registry/registry-client';
+import { NodeServiceClient } from './services/node/node-client';
+import { AuthManager } from './core/auth-manager';
+import { TokenStorage } from './core/token-storage';
 
 /**
- * Initialize the client with the given configuration
- *
- * @param config - Client configuration including baseUrl and optional certificate
+ * Main SDK client interface
  */
-export const initializeClient = (config: ClientConfig): void => {
-  setHttpClient(config);
+export interface IOBClient {
+  // Service clients
+  auth: AuthServiceClient;
+  registry: RegistryServiceClient;
+  node: NodeServiceClient;
 
-  // Configure logger if debug options are provided
-  if (config.debug) {
-    configureLogger(config.debug);
+  // Direct service client access
+  getAuthClient(): AuthServiceClient;
+  getRegistryClient(): RegistryServiceClient;
+  getNodeClient(): NodeServiceClient;
+
+  // User-facing auth methods
+  login(): Promise<{
+    success: boolean;
+    token?: string;
+    expiresAt?: Date;
+    issuedAt?: Date;
+    user?: any;
+  }>;
+  logout(): Promise<void>;
+  isAuthenticated(): boolean;
+  getToken(): Promise<{
+    token: string;
+    expiresAt: Date;
+    issuedAt: Date;
+  } | null>;
+
+  // Management
+  getAuthManager(): AuthManager;
+  getTokenStorage(): TokenStorage;
+  destroy(): void;
+}
+
+/**
+ * Main IOB SDK client implementation
+ */
+class IOBClientImpl implements IOBClient {
+  private serviceFactory: ServiceFactory;
+
+  constructor(config: SDKConfig) {
+    // Validate configuration
+    validateSDKConfig(config);
+
+    // Create service factory
+    this.serviceFactory = createServiceFactory(config);
   }
-};
 
-export const createClient = (config: ClientConfig) => {
-  // Initialize the client with the given configuration
-  setHttpClient(config);
+  // ============================================================================
+  // SERVICE CLIENT ACCESS
+  // ============================================================================
 
-  // Configure logger if debug options are provided
-  if (config.debug) {
-    configureLogger(config.debug);
+  get auth(): AuthServiceClient {
+    return this.serviceFactory.getAuthClient();
   }
 
-  return {
-    // Debug configuration
-    debug: {
-      /**
-       * Enable or disable debug mode at runtime
-       */
-      configure: (options: ClientConfig['debug']) => {
-        configureLogger(options);
+  get registry(): RegistryServiceClient {
+    return this.serviceFactory.getRegistryClient();
+  }
+
+  get node(): NodeServiceClient {
+    return this.serviceFactory.getNodeClient();
+  }
+
+  // ============================================================================
+  // DIRECT SERVICE CLIENT ACCESS
+  // ============================================================================
+
+  getAuthClient(): AuthServiceClient {
+    return this.serviceFactory.getAuthClient();
+  }
+
+  getRegistryClient(): RegistryServiceClient {
+    return this.serviceFactory.getRegistryClient();
+  }
+
+  getNodeClient(): NodeServiceClient {
+    return this.serviceFactory.getNodeClient();
+  }
+
+  // ============================================================================
+  // USER-FACING AUTH METHODS
+  // ============================================================================
+
+  /**
+   * User-initiated login - performs mTLS authentication
+   */
+  async login(): Promise<{
+    success: boolean;
+    token?: string;
+    expiresAt?: Date;
+    issuedAt?: Date;
+    user?: any;
+  }> {
+    const authManager = this.serviceFactory.getAuthManager();
+    const token = await authManager.login();
+    const authState = authManager.getAuthState();
+    return token
+      ? {
+          success: true,
+          token: token.token,
+          expiresAt: token.expiresAt,
+          issuedAt: token.issuedAt,
+          user: authState.user
+        }
+      : { success: false };
+  }
+
+  /**
+   * User-initiated logout
+   */
+  async logout(): Promise<void> {
+    const authManager = this.serviceFactory.getAuthManager();
+    await authManager.logout();
+  }
+
+  /**
+   * Check if user is currently authenticated
+   */
+  isAuthenticated(): boolean {
+    const authManager = this.serviceFactory.getAuthManager();
+    return authManager.isAuthenticated();
+  }
+
+  /**
+   * Get current JWT token
+   */
+  async getToken(): Promise<{
+    token: string;
+    expiresAt: Date;
+    issuedAt: Date;
+  } | null> {
+    const authManager = this.serviceFactory.getAuthManager();
+    const tokenString = await authManager.getValidToken();
+    if (tokenString) {
+      const authState = authManager.getAuthState();
+      if (authState.token) {
+        return {
+          token: authState.token.token,
+          expiresAt: authState.token.expiresAt,
+          issuedAt: authState.token.issuedAt
+        };
       }
-    },
-
-    // Authentication
-    auth: {
-      // mTLS authentication
-      requestBaseAuth: () => commonFacade.requestBaseAuth()(),
-      requestUuidAuth: () => commonFacade.requestUuidAuth()()
-    },
-
-    // Universal search using aggregate API
-    aggregate: {
-      findByUUID: (uuid: UUID) => aggregateFacade.findByUUID()(uuid),
-      getAggregateEntities: (params?: AggregateFindDTO) =>
-        aggregateFacade.getAggregateEntities()(params),
-      createAggregateObject: (data: AggregateCreateDTO) =>
-        aggregateFacade.createAggregateObject()(data),
-      importAggregateObjects: (data: AggregateCreateDTO) =>
-        aggregateFacade.importAggregateObjects()(data)
-    },
-
-    // Entity creation and management
-    objects: {
-      // Create simple objects
-      create: (object: UUObjectDTO) =>
-        objectService.createOrUpdateObject()(object),
-      createFullObject: (objectData: ComplexObjectCreationInput) =>
-        objectFacade.createFullObject()(objectData),
-      // Query objects
-      getObjects: (params?: QueryParams) => objectService.getObjects()(params),
-      // Delete objects
-      delete: (uuid: UUID) => objectService.softDeleteObject()(uuid)
-    },
-
-    // Properties
-    properties: {
-      addToObject: async (
-        objectUuid: UUID,
-        property: Partial<UUPropertyDTO> & { key: string }
-      ) => {
-        // Get UUID if needed
-        let propertyWithUuid: UUPropertyDTO;
-
-        if ('uuid' in property && property.uuid) {
-          propertyWithUuid = property as UUPropertyDTO;
-        } else {
-          const uuidResponse = await uuidService.createUUID()();
-          if (!uuidResponse.data?.uuid) {
-            throw new Error('Failed to obtain UUID for property');
-          }
-          propertyWithUuid = {
-            ...property,
-            uuid: uuidResponse.data.uuid
-          } as UUPropertyDTO;
-        }
-
-        // Create property and link to object
-        const propertyResponse =
-          await propertyService.createOrUpdateProperty()(propertyWithUuid);
-        if (propertyResponse.data) {
-          await statementService.createStatement()({
-            subject: objectUuid,
-            predicate: Predicate.HAS_PROPERTY,
-            object: propertyResponse.data.uuid
-          });
-
-          // Create inverse relationship
-          await statementService.createStatement()({
-            subject: propertyResponse.data.uuid,
-            predicate: Predicate.IS_PROPERTY_OF,
-            object: objectUuid
-          });
-        }
-        return propertyResponse;
-      },
-
-      create: (property: UUPropertyDTO) =>
-        propertyService.createOrUpdateProperty()(property),
-      getProperties: (params?: QueryParams) =>
-        propertyService.getProperties()(params),
-      getPropertyByKey: (key: string, params?: QueryParams) =>
-        propertyService.getPropertyByKey()(key, params),
-
-      delete: (uuid: UUID) => propertyService.softDeleteProperty()(uuid)
-    },
-
-    // Property values
-    values: {
-      setForProperty: async (
-        propertyUuid: UUID,
-        value: Partial<UUPropertyValueDTO>
-      ) => {
-        // Get UUID if needed
-        let valueWithUuid: UUPropertyValueDTO;
-
-        if ('uuid' in value && value.uuid) {
-          valueWithUuid = value as UUPropertyValueDTO;
-        } else {
-          const uuidResponse = await uuidService.createUUID()();
-          if (!uuidResponse.data?.uuid) {
-            throw new Error('Failed to obtain UUID for property value');
-          }
-          valueWithUuid = {
-            ...value,
-            uuid: uuidResponse.data.uuid
-          } as UUPropertyValueDTO;
-        }
-
-        // Create value and link to property
-        const valueResponse =
-          await propertyValueService.createOrUpdatePropertyValue()(
-            valueWithUuid
-          );
-        if (valueResponse.data) {
-          await statementService.createStatement()({
-            subject: propertyUuid,
-            predicate: Predicate.HAS_VALUE,
-            object: valueResponse.data.uuid
-          });
-
-          // Create inverse relationship
-          await statementService.createStatement()({
-            subject: valueResponse.data.uuid,
-            predicate: Predicate.IS_VALUE_OF,
-            object: propertyUuid
-          });
-        }
-        return valueResponse;
-      },
-
-      create: (value: UUPropertyValueDTO) =>
-        propertyValueService.createOrUpdatePropertyValue()(value),
-      getPropertyValues: (params?: QueryParams) =>
-        propertyValueService.getPropertyValues()(params),
-      delete: (uuid: UUID) =>
-        propertyValueService.softDeletePropertyValue()(uuid)
-    },
-
-    // Files
-    files: {
-      create: (file: UUFileDTO) => fileService.createOrUpdateFile()(file),
-      getFiles: (params?: QueryParams) => fileService.getFiles()(params),
-      delete: (uuid: UUID) => fileService.softDeleteFile()(uuid),
-      // Simplified facade methods
-      uploadByReference: (input: {
-        fileReference: string;
-        uuidToAttach: UUID;
-        label?: string;
-      }) => fileFacade.uploadByReference()(input),
-      uploadDirect: (input: {
-        file: File | Blob | ArrayBuffer | FormData;
-        uuidToAttach: UUID;
-      }) => fileFacade.uploadDirect()(input),
-      uploadFormData: (input: {
-        formData: FormData;
-        uuidFile: UUID;
-        uuidToAttach: UUID;
-      }) => fileFacade.uploadFormData()(input),
-      download: (uuid: UUID) => fileFacade.download()(uuid)
-    },
-
-    // Relationships (statements)
-    statements: {
-      // Get statements with filtering
-      getStatements: (params?: StatementQueryParams) =>
-        statementService.getStatements()(params),
-      // Create statements (relationships)
-      create: (statement: UUStatementDTO) =>
-        statementService.createStatement()(statement),
-      // Delete statements
-      delete: (statement: UUStatementDTO) =>
-        statementService.softDeleteStatement()(statement)
-    },
-
-    // UUID generation and management
-    uuid: {
-      create: () => uuidService.createUUID()(),
-      getOwned: () => uuidService.getOwnedUUIDs()(),
-      getRecord: (uuid: UUID) => uuidService.getUUIDRecord()(uuid),
-      updateRecordMeta: (params: { uuid?: UUID; nodeType: string }) =>
-        uuidService.updateUUIDRecordMeta()(params),
-      authorize: (params: { userUUID: UUID; resourceId: UUID }) =>
-        uuidService.authorizeUUIDRecord()(params)
-    },
-
-    // Addresses
-    addresses: {
-      create: (address: Omit<UUAddressDTO, 'uuid'>) =>
-        addressService.createAddress()(address),
-      update: (address: UUAddressDTO) =>
-        addressService.updateAddress()(address),
-      get: (params?: QueryParams) => addressService.getAddresses()(params),
-      delete: (uuid: UUID) => addressService.softDeleteAddress()(uuid),
-      createForObject: (
-        objectUuid: UUID,
-        address: Omit<UUAddressDTO, 'uuid'>
-      ) => addressService.createAddressForObject()(objectUuid, address)
     }
-  };
-};
+    return null;
+  }
+
+  // ============================================================================
+  // MANAGEMENT
+  // ============================================================================
+
+  getAuthManager(): AuthManager {
+    return this.serviceFactory.getAuthManager();
+  }
+
+  getTokenStorage(): TokenStorage {
+    return this.serviceFactory.getTokenStorage();
+  }
+
+  destroy(): void {
+    this.serviceFactory.destroy();
+  }
+}
+
+/**
+ * Create a new IOB SDK client with the provided configuration
+ */
+export function createClient(config: SDKConfig): IOBClient {
+  return new IOBClientImpl(config);
+}

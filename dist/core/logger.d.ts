@@ -1,8 +1,13 @@
-import { ClientConfig } from '@/types';
+interface DebugConfig {
+    enabled: boolean;
+    logLevel?: 'error' | 'info';
+    logToConsole?: boolean;
+    logCallback?: (message: string, data?: any) => void;
+}
 /**
  * Configure the logger with the provided debug options
  */
-export declare const configureLogger: (config?: ClientConfig["debug"]) => void;
+export declare const configureLogger: (config?: DebugConfig) => void;
 /**
  * Log a message if debug is enabled
  */
@@ -15,3 +20,4 @@ export declare const logHttp: (method: string, url: string, status?: number, dat
  * Log error information
  */
 export declare const logError: (operation: string, error: any) => void;
+export {};

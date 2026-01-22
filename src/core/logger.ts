@@ -1,5 +1,3 @@
-import { ClientConfig } from '@/types';
-
 // Default configuration
 let debugConfig = {
   enabled: false,
@@ -8,10 +6,17 @@ let debugConfig = {
   logCallback: null as ((message: string, data?: any) => void) | null
 };
 
+interface DebugConfig {
+  enabled: boolean;
+  logLevel?: 'error' | 'info';
+  logToConsole?: boolean;
+  logCallback?: (message: string, data?: any) => void;
+}
+
 /**
  * Configure the logger with the provided debug options
  */
-export const configureLogger = (config?: ClientConfig['debug']): void => {
+export const configureLogger = (config?: DebugConfig): void => {
   if (!config) {
     return;
   }
