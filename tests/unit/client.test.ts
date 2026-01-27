@@ -61,6 +61,7 @@ describe('Client', () => {
 
       const mockState = {
         token: token,
+        refreshToken: 'refresh-token-123',
         user: { userUUID: 'user-123' }
       };
 
@@ -83,7 +84,8 @@ describe('Client', () => {
       // Initial call on subscribe
       expect(listener).toHaveBeenCalledWith({
         isAuthenticated: false,
-        user: null
+        user: null,
+        isRefreshing: false
       });
 
       // Simulate logout (even if already out)
@@ -96,6 +98,7 @@ describe('Client', () => {
 
       // Mock some internal state
       (client as any).token = 'token';
+      (client as any).refreshToken = 'refresh-token';
       (client as any).user = { uuid: '123' };
 
       client.logout();
@@ -107,7 +110,7 @@ describe('Client', () => {
   });
 
   describe('token expiry checking', () => {
-    it('should reject expired tokens', () => {
+    it('should reject expired tokens', async () => {
       // Create an expired token
       const exp = Math.floor(Date.now() / 1000) - 3600; // expired 1 hour ago
       const tokenPayload = JSON.stringify({ exp, userUUID: 'user-123' });
@@ -122,7 +125,9 @@ describe('Client', () => {
 
       const client = createClient(config);
 
-      // Should auto-logout expired token
+      await client.getValidToken();
+
+      // Should auto-logout expired token after validation
       expect(client.isAuthenticated()).toBe(false);
       expect(client.getToken()).toBeNull();
     });
@@ -135,6 +140,7 @@ describe('Client', () => {
 
       const mockState = {
         token: validToken,
+        refreshToken: 'refresh-token-123',
         user: { userUUID: 'user-123' }
       };
 
