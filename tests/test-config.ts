@@ -52,7 +52,6 @@ export function createMockFetch(responses: Record<string, any> = {}) {
         token: 'mock-jwt-token',
         expiresIn: 3600
       },
-      'GET https://auth.test.com/api/auth/health': { status: 'healthy' },
       'POST https://registry.test.com/api/uuid': {
         uuid: '123e4567-e89b-12d3-a456-426614174000'
       },
@@ -171,10 +170,7 @@ export class TestUtils {
       auth: { ...defaultTestConfig.auth, ...overrides.auth },
       registry: { ...defaultTestConfig.registry, ...overrides.registry },
       node: { ...defaultTestConfig.node, ...overrides.node },
-      certificate: {
-        ...defaultTestConfig.certificate,
-        ...overrides.certificate
-      },
+      certificate: overrides.certificate || defaultTestConfig.certificate,
       errorHandling: {
         ...defaultTestConfig.errorHandling,
         ...overrides.errorHandling

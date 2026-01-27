@@ -5,6 +5,7 @@ import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
 import { AuthResponse } from './types';
+import { logInfo, logError } from './core/logger';
 
 export type AuthChangeListener = (state: {
   isAuthenticated: boolean;
@@ -13,10 +14,6 @@ export type AuthChangeListener = (state: {
 }) => void;
 
 const EARLY_REFRESH_BUFFER_MS = 60 * 1000; // 1 minute
-
-// helper for logging short tokens
-const shortToken = (token?: string | null) =>
-  token ? `${token.slice(0, 10)}...${token.slice(-6)}` : 'null';
 
 export class Client {
   private config: SDKConfig;
@@ -97,58 +94,38 @@ export class Client {
       const payload = JSON.parse(atob(this.token.split('.')[1]));
       const expMs = payload.exp * 1000;
       const expired = Date.now() >= expMs - EARLY_REFRESH_BUFFER_MS;
-      console.log('[SDK] access-token-check', {
-        expired,
-        exp: new Date(expMs).toISOString(),
-        now: new Date().toISOString(),
-        token: shortToken(this.token)
-      });
       return expired;
     } catch (err) {
-      console.warn('[SDK] failed to parse access token', err);
+      logError('Parse access token', err);
       return true;
     }
   }
 
   public async getValidToken(): Promise<string | null> {
     if (!this.token && !this.refreshToken) {
-      console.log('[SDK] getValidToken - no token or refreshToken');
       return null;
     }
 
     if (!this.isAccessTokenExpired()) {
-      console.log('[SDK] getValidToken - token valid', {
-        token: shortToken(this.token)
-      });
       return this.token;
     }
 
     if (this.refreshPromise) {
-      console.log('[SDK] getValidToken - awaiting in-flight refresh');
       try {
         const t = await this.refreshPromise;
-        console.log('[SDK] getValidToken - received refreshed token', {
-          token: shortToken(t)
-        });
         return t;
       } catch (err) {
-        console.warn('[SDK] getValidToken - in-flight refresh failed', err);
+        logError('In-flight refresh failed', err);
         return null;
       }
     }
 
     if (this.refreshToken) {
-      console.log('[SDK] getValidToken - triggering refresh', {
-        oldToken: shortToken(this.token)
-      });
       try {
         const t = await this.attemptTokenRefresh();
-        console.log('[SDK] getValidToken - refresh completed', {
-          token: shortToken(t)
-        });
         return t;
       } catch (err) {
-        console.warn('[SDK] getValidToken - refresh failed', err);
+        logError('Token refresh failed', err);
         return null;
       }
     }
@@ -164,25 +141,18 @@ export class Client {
   private async refreshIfNeededOnStartup(): Promise<void> {
     if (!this.refreshToken) return;
     if (!this.isAccessTokenExpired()) {
-      console.log('[SDK] Startup refresh skipped - token still valid', {
-        token: shortToken(this.token)
-      });
       return;
     }
 
     if (this.refreshPromise) {
-      console.log('[SDK] Startup refresh awaiting in-flight refresh');
       await this.refreshPromise;
       return;
     }
 
     try {
-      console.log('[SDK] Startup refresh triggered', {
-        oldToken: shortToken(this.token)
-      });
       await this.attemptTokenRefresh();
     } catch {
-      console.warn('[SDK] Startup refresh failed, logging out');
+      logError('Startup refresh failed', null);
       this.logout();
     }
   }
@@ -193,14 +163,10 @@ export class Client {
 
   private async attemptTokenRefresh(): Promise<string> {
     if (this.refreshPromise) {
-      console.log(
-        '[SDK] attemptTokenRefresh - single-flight awaiting existing refresh'
-      );
       return this.refreshPromise;
     }
 
     if (!this.refreshToken) {
-      console.warn('[SDK] attemptTokenRefresh - no refresh token, logging out');
       this.logout();
       throw new Error('No refresh token');
     }
@@ -208,39 +174,30 @@ export class Client {
     this.isRefreshing = true;
     this.notifyListeners();
 
-    const oldToken = this.token;
-
     this.refreshPromise = (async () => {
       try {
-        console.log('[SDK] Refreshing access token...', {
-          oldToken: shortToken(oldToken)
-        });
         const response = await this.auth.refreshToken(this.refreshToken!);
         if (!response.accessToken || !response.refreshToken) {
+          logError('Invalid refresh token response', response);
           throw new Error('Invalid refresh token response');
         }
 
         this.token = response.accessToken;
         this.refreshToken = response.refreshToken;
         this.saveState();
-        console.log('[SDK] Refresh successful', {
-          oldToken: shortToken(oldToken),
-          newToken: shortToken(response.accessToken)
-        });
         return response.accessToken;
       } catch (error: any) {
         if (error.response?.status === 403) {
-          console.warn('[SDK] Refresh token expired, logging out');
+          logError('Refresh token expired', null);
           this.logout();
           throw new Error('Refresh token expired');
         }
-        console.error('[SDK] Refresh failed', error);
+        logError('Refresh failed', error);
         throw error;
       } finally {
         this.isRefreshing = false;
         this.refreshPromise = null;
         this.notifyListeners();
-        console.log('[SDK] Refresh finished');
       }
     })();
 
@@ -262,10 +219,6 @@ export class Client {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      console.log('[SDK] Axios request', {
-        url: config.url,
-        token: shortToken(token)
-      });
       return config;
     });
 
@@ -286,19 +239,12 @@ export class Client {
         ) {
           originalRequest._retry = true;
 
-          console.log('[SDK] Axios 401 - triggering refresh', {
-            url: originalRequest.url
-          });
           try {
             const newToken = await this.attemptTokenRefresh();
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            console.log('[SDK] Axios retrying request with new token', {
-              url: originalRequest.url,
-              token: shortToken(newToken)
-            });
             return instance(originalRequest);
           } catch (err) {
-            console.warn('[SDK] Axios 401 refresh failed, logging out', err);
+            logError('Axios 401 refresh failed', err);
             this.logout();
           }
         }
@@ -324,26 +270,21 @@ export class Client {
 
   public async login(): Promise<{ success: boolean; user?: AuthResponse }> {
     try {
-      console.log('[SDK] login triggered');
       const response = await this.auth.login();
       this.token = response.token;
       this.refreshToken = response.refreshToken;
       this.user = response.user || null;
       this.saveState();
-      console.log('[SDK] login successful', {
-        token: shortToken(this.token),
-        refreshToken: shortToken(this.refreshToken)
-      });
+      logInfo('Login successful');
       return { success: true, user: this.user || undefined };
-    } catch (err) {
-      console.warn('[SDK] login failed', err);
-      this.logout();
+    } catch (error) {
+      logError('Login failed', error);
       return { success: false };
     }
   }
 
   public logout(): void {
-    console.log('[SDK] logout triggered');
+    logInfo('Logout triggered');
     this.token = null;
     this.refreshToken = null;
     this.user = null;

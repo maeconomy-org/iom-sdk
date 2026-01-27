@@ -64,19 +64,12 @@ export const log = (
 };
 
 /**
- * Log request/response information
+ * Log informational message
  */
-export const logHttp = (
-  method: string,
-  url: string,
-  status?: number,
-  data?: any
-): void => {
+export const logInfo = (message: string, data?: any): void => {
   if (!debugConfig.enabled) {
     return;
   }
-
-  const message = status ? `${method} ${url} (${status})` : `${method} ${url}`;
 
   log('info', message, data);
 };

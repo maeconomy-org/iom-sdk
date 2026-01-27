@@ -13,9 +13,9 @@ export declare const configureLogger: (config?: DebugConfig) => void;
  */
 export declare const log: (level: "error" | "info", message: string, data?: any) => void;
 /**
- * Log request/response information
+ * Log informational message
  */
-export declare const logHttp: (method: string, url: string, status?: number, data?: any) => void;
+export declare const logInfo: (message: string, data?: any) => void;
 /**
  * Log error information
  */
