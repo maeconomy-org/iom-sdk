@@ -63,22 +63,6 @@ export class NodeServiceClient {
     return response.data;
   }
 
-  async createObject(object: Omit<UUObjectDTO, 'uuid'>): Promise<UUObjectDTO> {
-    const response = await this.axios.post<UUObjectDTO>(
-      '/api/UUObject',
-      object
-    );
-    return response.data;
-  }
-
-  async updateObject(object: UUObjectDTO): Promise<UUObjectDTO> {
-    const response = await this.axios.put<UUObjectDTO>(
-      `/api/UUObject/${object.uuid}`,
-      object
-    );
-    return response.data;
-  }
-
   async softDeleteObject(uuid: UUID): Promise<{ success: boolean }> {
     const response = await this.axios.delete<{ success: boolean }>(
       `/api/UUObject/${uuid}`
@@ -361,7 +345,7 @@ export class NodeServiceClient {
       };
 
       // Create the file record
-      const created = await this.createObject({
+      const created = await this.createOrUpdateObject({
         ...fileRecord,
         uuid: fileUuid
       } as any);

@@ -15,6 +15,8 @@ export interface ServiceConfig {
   retries?: number;
   /** Additional headers to include with requests */
   headers?: Record<string, string>;
+  /** Alternative base URL for specific operations (e.g., refresh token endpoint without MTLS) */
+  refreshBaseUrl?: string;
 }
 
 /**

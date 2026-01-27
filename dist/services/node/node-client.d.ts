@@ -11,8 +11,6 @@ export declare class NodeServiceClient {
     private request;
     getObjects(params?: QueryParams): Promise<UUObjectDTO[]>;
     createOrUpdateObject(object: UUObjectDTO): Promise<UUObjectDTO>;
-    createObject(object: Omit<UUObjectDTO, 'uuid'>): Promise<UUObjectDTO>;
-    updateObject(object: UUObjectDTO): Promise<UUObjectDTO>;
     softDeleteObject(uuid: UUID): Promise<{
         success: boolean;
     }>;

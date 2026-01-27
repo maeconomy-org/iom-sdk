@@ -17,8 +17,8 @@ export interface UUIDCreationResponse {
 }
 export interface UUIDAuthParams {
     uuid: string;
-    targetUserUUID: string;
-    permissions: string[];
+    userUUID: string;
+    resourceId: string;
 }
 export declare class RegistryServiceClient {
     private axios;

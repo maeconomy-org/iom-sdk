@@ -15,6 +15,7 @@ export interface JWTAuthResponse {
   expiresIn: number; // seconds until expiry
   tokenType: string; // typically "Bearer"
   user?: AuthResponse;
+  refreshToken: string; // refresh token for token renewal
 }
 
 // Token refresh configuration
@@ -69,4 +70,30 @@ export interface AuthResponse {
 export interface AuthLoginResponse {
   user: AuthResponse;
   accessToken: string;
+  refreshToken: string;
+}
+
+/**
+ * Auth login payload containing user details and access token
+ */
+export interface AuthRefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+/**
+ * Refresh token request payload
+ */
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+/**
+ * Refresh token error response (403 when expired)
+ */
+export interface RefreshTokenError {
+  detail: string;
+  status: number;
+  title: string;
+  errors: Record<string, any>;
 }

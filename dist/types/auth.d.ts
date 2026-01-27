@@ -11,6 +11,7 @@ export interface JWTAuthResponse {
     expiresIn: number;
     tokenType: string;
     user?: AuthResponse;
+    refreshToken: string;
 }
 export interface TokenRefreshConfig {
     refreshThresholdMinutes?: number;
@@ -59,4 +60,27 @@ export interface AuthResponse {
 export interface AuthLoginResponse {
     user: AuthResponse;
     accessToken: string;
+    refreshToken: string;
+}
+/**
+ * Auth login payload containing user details and access token
+ */
+export interface AuthRefreshTokenResponse {
+    accessToken: string;
+    refreshToken: string;
+}
+/**
+ * Refresh token request payload
+ */
+export interface RefreshTokenRequest {
+    refreshToken: string;
+}
+/**
+ * Refresh token error response (403 when expired)
+ */
+export interface RefreshTokenError {
+    detail: string;
+    status: number;
+    title: string;
+    errors: Record<string, any>;
 }
