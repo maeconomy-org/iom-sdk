@@ -58,7 +58,8 @@ export class Client {
     this.node = new NodeServiceClient(
       config.node,
       config.errorHandling || {},
-      this.createServiceAxiosInstance(config.node.baseUrl)
+      this.createServiceAxiosInstance(config.node.baseUrl),
+      this.registry
     );
 
     this.axiosInstance = this.node.getAxios();

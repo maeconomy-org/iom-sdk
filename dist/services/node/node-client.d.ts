@@ -27,12 +27,29 @@ export declare class NodeServiceClient {
         success: boolean;
     }>;
     getStatements(params?: StatementQueryParams): Promise<UUStatementDTO[]>;
+    /**
+     * Create one or more statements
+     * API expects an array of statements
+     */
+    createStatements(statements: UUStatementDTO[]): Promise<UUStatementDTO[]>;
+    /**
+     * Create a single statement (convenience wrapper)
+     * Wraps the statement in an array as required by the API
+     */
     createStatement(statement: UUStatementDTO): Promise<UUStatementDTO>;
     softDeleteStatement(subject: UUID, predicate: string, object: UUID): Promise<{
         success: boolean;
     }>;
     getFiles(params?: QueryParams): Promise<UUFileDTO[]>;
-    uploadFile(file: any, metadata?: Partial<UUFileDTO>): Promise<UUFileDTO>;
+    /**
+     * Upload a file's binary content via multipart/form-data
+     * Swagger: POST /api/UUFile/upload?uuidFile={uuidFile}&uuidToAttach={uuidToAttach}
+     */
+    uploadFileBinary(uuidFile: UUID, uuidToAttach: UUID, file: File | Blob, fieldName?: string): Promise<UUFileDTO>;
+    /**
+     * Create or update a UUFile record (metadata only, no binary)
+     */
+    createOrUpdateFile(file: UUFileDTO): Promise<UUFileDTO>;
     getFile(uuid: UUID): Promise<UUFileDTO>;
     downloadFile(uuid: UUID): Promise<ArrayBuffer>;
     softDeleteFile(uuid: UUID): Promise<{
@@ -61,10 +78,13 @@ export declare class NodeServiceClient {
     }): Promise<ApiResponse<UUFileDTO | null>>;
     /**
      * Upload a file's binary content directly
-     * Creates UUID, uploads file, and links to parent object
+     * Complete flow:
+     * 1) Create UUID for the file
+     * 2) POST binary to /api/UUFile/upload with uuidFile and uuidToAttach
+     * 3) Create statement to link file to parent object
      */
     uploadFileDirect(input: {
-        file: File;
+        file: File | Blob;
         uuidToAttach: UUID;
         label?: string;
     }): Promise<ApiResponse<UUFileDTO | null>>;

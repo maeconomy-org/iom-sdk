@@ -161,12 +161,27 @@ export class NodeServiceClient {
     return response.data;
   }
 
-  async createStatement(statement: UUStatementDTO): Promise<UUStatementDTO> {
-    const response = await this.axios.post<UUStatementDTO>(
+  /**
+   * Create one or more statements
+   * API expects an array of statements
+   */
+  async createStatements(
+    statements: UUStatementDTO[]
+  ): Promise<UUStatementDTO[]> {
+    const response = await this.axios.post<UUStatementDTO[]>(
       '/api/UUStatements',
-      statement
+      statements
     );
     return response.data;
+  }
+
+  /**
+   * Create a single statement (convenience wrapper)
+   * Wraps the statement in an array as required by the API
+   */
+  async createStatement(statement: UUStatementDTO): Promise<UUStatementDTO> {
+    const results = await this.createStatements([statement]);
+    return results[0];
   }
 
   async softDeleteStatement(
@@ -194,22 +209,32 @@ export class NodeServiceClient {
     return response.data;
   }
 
-  async uploadFile(
-    file: any,
-    metadata?: Partial<UUFileDTO>
+  /**
+   * Upload a file's binary content via multipart/form-data
+   * Swagger: POST /api/UUFile/upload?uuidFile={uuidFile}&uuidToAttach={uuidToAttach}
+   */
+  async uploadFileBinary(
+    uuidFile: UUID,
+    uuidToAttach: UUID,
+    file: File | Blob,
+    fieldName: string = 'file'
   ): Promise<UUFileDTO> {
     const formData = new FormData();
-    formData.append('file', file);
-    if (metadata) {
-      Object.entries(metadata).forEach(([key, value]) => {
-        if (value !== undefined) {
-          formData.append(key, String(value));
-        }
-      });
-    }
-    const response = await this.axios.post<UUFileDTO>('/api/UUFile', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    formData.append(fieldName, file);
+
+    // Build URL with query parameters - this is the correct endpoint for binary upload
+    const url = `/api/UUFile/upload?uuidFile=${uuidFile}&uuidToAttach=${uuidToAttach}`;
+
+    // Don't set Content-Type manually - let axios/browser auto-detect it with proper boundary
+    const response = await this.axios.post<UUFileDTO>(url, formData);
+    return response.data;
+  }
+
+  /**
+   * Create or update a UUFile record (metadata only, no binary)
+   */
+  async createOrUpdateFile(file: UUFileDTO): Promise<UUFileDTO> {
+    const response = await this.axios.post<UUFileDTO>('/api/UUFile', file);
     return response.data;
   }
 
@@ -220,7 +245,7 @@ export class NodeServiceClient {
 
   async downloadFile(uuid: UUID): Promise<ArrayBuffer> {
     const response = await this.axios.get<ArrayBuffer>(
-      `/api/UUFile/${uuid}/download`,
+      `/api/UUFile/download/${uuid}`,
       {
         responseType: 'arraybuffer'
       }
@@ -335,8 +360,9 @@ export class NodeServiceClient {
       const uuidResponse = await this.registryClient.createUUID();
       const fileUuid = uuidResponse.uuid;
 
-      // 2. Create UUFile record with provided data
-      const fileRecord: Omit<UUFileDTO, 'uuid'> = {
+      // 2. Create UUFile record with provided data (metadata only)
+      const fileRecord: UUFileDTO = {
+        uuid: fileUuid,
         fileReference: input.fileReference,
         fileName: input.fileName,
         label: input.label,
@@ -344,11 +370,8 @@ export class NodeServiceClient {
         size: input.size
       };
 
-      // Create the file record
-      const created = await this.createOrUpdateObject({
-        ...fileRecord,
-        uuid: fileUuid
-      } as any);
+      // Create the file record via /api/UUFile
+      const created = await this.createOrUpdateFile(fileRecord);
 
       // 3. Create statement to link file to parent object
       await this.createStatement({
@@ -358,7 +381,7 @@ export class NodeServiceClient {
       });
 
       return {
-        data: created as any,
+        data: created,
         status: 200,
         statusText: 'OK'
       };
@@ -373,10 +396,13 @@ export class NodeServiceClient {
 
   /**
    * Upload a file's binary content directly
-   * Creates UUID, uploads file, and links to parent object
+   * Complete flow:
+   * 1) Create UUID for the file
+   * 2) POST binary to /api/UUFile/upload with uuidFile and uuidToAttach
+   * 3) Create statement to link file to parent object
    */
   async uploadFileDirect(input: {
-    file: File;
+    file: File | Blob;
     uuidToAttach: UUID;
     label?: string;
   }): Promise<ApiResponse<UUFileDTO | null>> {
@@ -389,11 +415,12 @@ export class NodeServiceClient {
       const uuidResponse = await this.registryClient.createUUID();
       const fileUuid = uuidResponse.uuid;
 
-      // 2. Upload the file with metadata
-      const uploadedFile = await this.uploadFile(input.file, {
-        uuid: fileUuid,
-        label: input.label
-      });
+      // 2. Upload the binary content to /api/UUFile/upload
+      const uploadedFile = await this.uploadFileBinary(
+        fileUuid,
+        input.uuidToAttach,
+        input.file
+      );
 
       // 3. Create statement to link file to parent object
       await this.createStatement({
