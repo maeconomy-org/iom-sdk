@@ -65,12 +65,14 @@ export interface SDKError extends Error {
  * Main SDK configuration interface
  */
 export interface SDKConfig {
-  /** Auth service configuration */
+  /** Auth service configuration (mTLS cert login) */
   auth: ServiceConfig;
   /** Registry/UUID service configuration */
   registry: ServiceConfig;
   /** Node service configuration */
   node: ServiceConfig;
+  /** UP auth service configuration (email/password login) — optional */
+  up?: ServiceConfig;
   /** Client certificate for mTLS authentication (optional - browser will handle cert selection) */
   certificate?: {
     cert: string;
@@ -141,6 +143,9 @@ export function validateSDKConfig(config: SDKConfig): void {
   validateServiceConfig(config.auth, 'auth');
   validateServiceConfig(config.registry, 'registry');
   validateServiceConfig(config.node, 'node');
+  if (config.up) {
+    validateServiceConfig(config.up, 'up');
+  }
 
   // Validate token storage option
   if (

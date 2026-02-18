@@ -31,10 +31,15 @@ export interface AuthState {
  */
 export interface AuthResponse {
     userUUID: string;
-    credentials: string;
+    credentials?: string;
+    credentialValue?: string;
+    usernamePasswordCredentials?: {
+        username?: string;
+        credentialValue?: string;
+    };
     createdAt: string;
-    authorities: string[];
-    certificateInfo: {
+    authorities?: string[];
+    certificateInfo?: {
         certificateSha256: string;
         subjectFields: {
             CN: string;
@@ -49,10 +54,10 @@ export interface AuthResponse {
         validTo: string;
         subjectAlternativeNames: string[];
     };
-    enabled: boolean;
-    accountNonExpired: boolean;
-    credentialsNonExpired: boolean;
-    accountNonLocked: boolean;
+    enabled?: boolean;
+    accountNonExpired?: boolean;
+    credentialsNonExpired?: boolean;
+    accountNonLocked?: boolean;
 }
 /**
  * Auth login payload containing user details and access token
@@ -83,4 +88,18 @@ export interface RefreshTokenError {
     status: number;
     title: string;
     errors: Record<string, any>;
+}
+/**
+ * Email/password registration request
+ */
+export interface EmailPasswordRegisterRequest {
+    email: string;
+    password: string;
+}
+/**
+ * Email/password login request
+ */
+export interface EmailPasswordLoginRequest {
+    email: string;
+    password: string;
 }

@@ -3,7 +3,7 @@ import { Predicate } from '@/types';
 export declare const uuidSchema: z.ZodString;
 export declare const objectDTOSchema: z.ZodObject<{
     uuid: z.ZodString;
-    name: z.ZodOptional<z.ZodString>;
+    name: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
     abbreviation: z.ZodOptional<z.ZodString>;
     version: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
@@ -228,7 +228,7 @@ export type FindStatementsParamsType = z.infer<typeof findStatementsParamsSchema
 export declare const objectWithPropertiesSchema: z.ZodObject<{
     object: z.ZodObject<{
         uuid: z.ZodString;
-        name: z.ZodOptional<z.ZodString>;
+        name: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
         abbreviation: z.ZodOptional<z.ZodString>;
         version: z.ZodOptional<z.ZodString>;
         description: z.ZodOptional<z.ZodString>;
@@ -345,7 +345,7 @@ export declare const objectWithPropertiesSchema: z.ZodObject<{
     }>, "many">;
     children: z.ZodOptional<z.ZodArray<z.ZodObject<{
         uuid: z.ZodString;
-        name: z.ZodOptional<z.ZodString>;
+        name: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
         abbreviation: z.ZodOptional<z.ZodString>;
         version: z.ZodOptional<z.ZodString>;
         description: z.ZodOptional<z.ZodString>;
@@ -773,7 +773,7 @@ export declare const propertyWithValuesFilesSchema: z.ZodObject<{
 export declare const complexObjectCreationSchema: z.ZodObject<{
     object: z.ZodObject<Omit<{
         uuid: z.ZodString;
-        name: z.ZodOptional<z.ZodString>;
+        name: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
         abbreviation: z.ZodOptional<z.ZodString>;
         version: z.ZodOptional<z.ZodString>;
         description: z.ZodOptional<z.ZodString>;
@@ -1175,3 +1175,66 @@ export declare const complexObjectCreationSchema: z.ZodObject<{
     } | undefined;
 }>;
 export type ComplexObjectCreationSchemaType = z.infer<typeof complexObjectCreationSchema>;
+export declare const emailSchema: z.ZodString;
+export declare const passwordSchema: z.ZodString;
+/**
+ * Validates email and password for UP auth
+ * Throws ValidationError if invalid
+ */
+export declare function validateEmailPassword(email: string, password: string): void;
+export declare const groupCreateDTOSchema: z.ZodObject<{
+    ownerUserUUID: z.ZodOptional<z.ZodString>;
+    groupUUID: z.ZodOptional<z.ZodString>;
+    name: z.ZodString;
+    usersShare: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        userUUID: z.ZodOptional<z.ZodString>;
+        permissions: z.ZodArray<z.ZodEnum<["READ", "GROUP_WRITE", "GROUP_WRITE_RECORDS"]>, "many">;
+    }, "strip", z.ZodTypeAny, {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+        userUUID?: string | undefined;
+    }, {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+        userUUID?: string | undefined;
+    }>, "many">>;
+    publicShare: z.ZodOptional<z.ZodObject<{
+        permissions: z.ZodArray<z.ZodEnum<["READ", "GROUP_WRITE", "GROUP_WRITE_RECORDS"]>, "many">;
+    }, "strip", z.ZodTypeAny, {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+    }, {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+    }>>;
+    default: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    groupUUID?: string | undefined;
+    ownerUserUUID?: string | undefined;
+    usersShare?: {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+        userUUID?: string | undefined;
+    }[] | undefined;
+    publicShare?: {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+    } | undefined;
+    default?: boolean | undefined;
+}, {
+    name: string;
+    groupUUID?: string | undefined;
+    ownerUserUUID?: string | undefined;
+    usersShare?: {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+        userUUID?: string | undefined;
+    }[] | undefined;
+    publicShare?: {
+        permissions: ("READ" | "GROUP_WRITE" | "GROUP_WRITE_RECORDS")[];
+    } | undefined;
+    default?: boolean | undefined;
+}>;
+export type GroupCreateDTOSchemaType = z.infer<typeof groupCreateDTOSchema>;
+export declare const groupAddRecordsDTOSchema: z.ZodObject<{
+    recordUUIDs: z.ZodArray<z.ZodString, "many">;
+}, "strip", z.ZodTypeAny, {
+    recordUUIDs: string[];
+}, {
+    recordUUIDs: string[];
+}>;
+export type GroupAddRecordsDTOSchemaType = z.infer<typeof groupAddRecordsDTOSchema>;

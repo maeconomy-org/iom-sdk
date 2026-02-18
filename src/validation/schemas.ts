@@ -6,10 +6,17 @@ export const uuidSchema = z.string().uuid({
   message: 'Invalid UUID format. Must be a valid UUID string.'
 });
 
+// Non-empty string that rejects whitespace-only values
+const nonEmptyString = z
+  .string()
+  .refine(val => val === undefined || val.trim().length > 0, {
+    message: 'Value cannot be empty or contain only whitespace'
+  });
+
 // Object DTO Validation Schema
 export const objectDTOSchema = z.object({
   uuid: uuidSchema,
-  name: z.string().optional(),
+  name: nonEmptyString.optional(),
   abbreviation: z.string().optional(),
   version: z.string().optional(),
   description: z.string().optional(),
@@ -173,4 +180,70 @@ export const complexObjectCreationSchema = z.object({
 
 export type ComplexObjectCreationSchemaType = z.infer<
   typeof complexObjectCreationSchema
+>;
+
+// Email validation schema
+export const emailSchema = z
+  .string()
+  .email('Invalid email format')
+  .min(1, 'Email is required');
+
+// Password validation schema
+// Requirements: 8+ chars, at least one lowercase, uppercase, number, and symbol
+export const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(
+    /[^a-zA-Z0-9]/,
+    'Password must contain at least one special character'
+  );
+
+/**
+ * Validates email and password for UP auth
+ * Throws ValidationError if invalid
+ */
+export function validateEmailPassword(email: string, password: string): void {
+  emailSchema.parse(email);
+  passwordSchema.parse(password);
+}
+
+// Group Create DTO Validation Schema
+export const groupCreateDTOSchema = z.object({
+  ownerUserUUID: z.string().optional(),
+  groupUUID: z.string().optional(),
+  name: z.string().min(1, 'Group name is required'),
+  usersShare: z
+    .array(
+      z.object({
+        userUUID: uuidSchema.optional(),
+        permissions: z
+          .array(z.enum(['READ', 'GROUP_WRITE', 'GROUP_WRITE_RECORDS']))
+          .min(1, 'At least one permission is required')
+      })
+    )
+    .optional(),
+  publicShare: z
+    .object({
+      permissions: z
+        .array(z.enum(['READ', 'GROUP_WRITE', 'GROUP_WRITE_RECORDS']))
+        .min(1, 'At least one permission is required')
+    })
+    .optional(),
+  default: z.boolean().optional()
+});
+
+export type GroupCreateDTOSchemaType = z.infer<typeof groupCreateDTOSchema>;
+
+// Group Add Records DTO Validation Schema
+export const groupAddRecordsDTOSchema = z.object({
+  recordUUIDs: z
+    .array(uuidSchema)
+    .min(1, 'At least one record UUID is required')
+});
+
+export type GroupAddRecordsDTOSchemaType = z.infer<
+  typeof groupAddRecordsDTOSchema
 >;

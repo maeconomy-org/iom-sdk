@@ -17,7 +17,10 @@ import {
   AggregateFindDTO,
   PageAggregateEntity,
   Predicate,
-  ApiResponse
+  ApiResponse,
+  GroupCreateDTO,
+  GroupAddRecordsDTO,
+  GroupRecord
 } from '../../types';
 
 export class NodeServiceClient {
@@ -600,6 +603,69 @@ export class NodeServiceClient {
       };
     }
   }
+
+  // ============================================================================
+  // GROUP ACCESS OPERATIONS
+  // ============================================================================
+
+  /**
+   * List all groups
+   * GET /api/access/groups
+   */
+  async listGroups(): Promise<GroupCreateDTO[]> {
+    const response =
+      await this.axios.get<GroupCreateDTO[]>('/api/access/groups');
+    return response.data;
+  }
+
+  /**
+   * Create a new group
+   * POST /api/access/groups
+   */
+  async createGroup(group: GroupCreateDTO): Promise<GroupCreateDTO> {
+    const response = await this.axios.post<GroupCreateDTO>(
+      '/api/access/groups',
+      group
+    );
+    return response.data;
+  }
+
+  /**
+   * Get a group by UUID
+   * GET /api/access/groups/{groupUUID}
+   */
+  async getGroup(groupUUID: UUID): Promise<GroupCreateDTO> {
+    const response = await this.axios.get<GroupCreateDTO>(
+      `/api/access/groups/${groupUUID}`
+    );
+    return response.data;
+  }
+
+  /**
+   * List records in a group
+   * GET /api/access/groups/{groupUUID}/records
+   */
+  async listGroupRecords(groupUUID: UUID): Promise<GroupRecord[]> {
+    const response = await this.axios.get<GroupRecord[]>(
+      `/api/access/groups/${groupUUID}/records`
+    );
+    return response.data;
+  }
+
+  /**
+   * Add records to a group
+   * POST /api/access/groups/{groupUUID}/records
+   */
+  async addGroupRecords(
+    groupUUID: UUID,
+    records: GroupAddRecordsDTO
+  ): Promise<void> {
+    await this.axios.post(`/api/access/groups/${groupUUID}/records`, records);
+  }
+
+  // ============================================================================
+  // MISC
+  // ============================================================================
 
   /**
    * Update error handling configuration

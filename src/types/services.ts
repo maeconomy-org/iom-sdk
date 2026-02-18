@@ -78,6 +78,7 @@ export interface UUStatementDTO {
 // UUProperty Data Transfer Object
 export interface UUPropertyDTO {
   uuid: UUID;
+  groupUUID?: UUID;
   key: string;
   version?: string;
   label?: string;
@@ -93,6 +94,7 @@ export interface UUPropertyDTO {
 // UUPropertyValue Data Transfer Object
 export interface UUPropertyValueDTO {
   uuid: UUID;
+  groupUUID?: UUID;
   value?: string;
   valueTypeCast?: string;
   sourceType?: string;
@@ -101,6 +103,7 @@ export interface UUPropertyValueDTO {
 // UUObject Data Transfer Object
 export interface UUObjectDTO {
   uuid: UUID;
+  groupUUID?: UUID;
   version?: string;
   name?: string;
   abbreviation?: string;
@@ -111,6 +114,7 @@ export interface UUObjectDTO {
 // UUFile Data Transfer Object
 export interface UUFileDTO {
   uuid: UUID;
+  groupUUID?: UUID;
   fileName?: string;
   fileReference?: string;
   label?: string;
@@ -121,6 +125,7 @@ export interface UUFileDTO {
 // UUAddress Data Transfer Object
 export interface UUAddressDTO {
   uuid: UUID;
+  groupUUID?: UUID;
   fullAddress?: string;
   street?: string;
   houseNumber?: string;

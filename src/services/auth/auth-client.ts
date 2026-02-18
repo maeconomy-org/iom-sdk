@@ -43,8 +43,9 @@ export class AuthServiceClient {
   }
 
   async login(): Promise<JWTAuthResponse> {
-    const response =
-      await this.axiosInstance.get<AuthLoginResponse>('/api/auth/login');
+    const response = await this.axiosInstance.get<AuthLoginResponse>(
+      '/api/auth/cert/login'
+    );
     const { accessToken, refreshToken, user } = response.data;
 
     const tokenString = accessToken.trim();

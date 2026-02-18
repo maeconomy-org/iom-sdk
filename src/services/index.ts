@@ -11,3 +11,6 @@ export * from './registry';
 
 // Node service
 export * from './node';
+
+// UP auth service (email/password)
+export * from './up';

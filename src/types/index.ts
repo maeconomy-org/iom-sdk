@@ -14,3 +14,6 @@ export * from './services';
 
 // Aggregate types
 export * from './aggregates';
+
+// Group types
+export * from './groups';

@@ -3,7 +3,8 @@ import { SDKConfig } from './config';
 import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
-import { AuthResponse } from './types';
+import { UpAuthServiceClient } from './services/up/up-client';
+import { AuthResponse, EmailPasswordLoginRequest, EmailPasswordRegisterRequest } from './types';
 export type AuthChangeListener = (state: {
     isAuthenticated: boolean;
     user: AuthResponse | null;
@@ -22,6 +23,7 @@ export declare class Client {
     auth: AuthServiceClient;
     registry: RegistryServiceClient;
     node: NodeServiceClient;
+    up: UpAuthServiceClient | null;
     private readonly STORAGE_KEY;
     constructor(config: SDKConfig);
     isAuthenticated(): boolean;
@@ -35,6 +37,20 @@ export declare class Client {
     login(): Promise<{
         success: boolean;
         user?: AuthResponse;
+    }>;
+    /**
+     * Login with email and password via UP auth service
+     */
+    loginWithEmailPassword(request: EmailPasswordLoginRequest): Promise<{
+        success: boolean;
+        user?: AuthResponse;
+    }>;
+    /**
+     * Register a new user with email and password via UP auth service
+     */
+    register(request: EmailPasswordRegisterRequest): Promise<{
+        success: boolean;
+        message?: string;
     }>;
     logout(): void;
     private loadState;

@@ -1,7 +1,7 @@
 import { AxiosInstance } from 'axios';
 import { ServiceConfig, ErrorHandlingConfig } from '../../config';
 import { RegistryServiceClient } from '../registry/registry-client';
-import { UUID, UUObjectDTO, UUPropertyDTO, UUPropertyValueDTO, UUStatementDTO, UUFileDTO, UUAddressDTO, QueryParams, StatementQueryParams, AggregateCreateDTO, AggregateEntity, AggregateFindDTO, PageAggregateEntity, ApiResponse } from '../../types';
+import { UUID, UUObjectDTO, UUPropertyDTO, UUPropertyValueDTO, UUStatementDTO, UUFileDTO, UUAddressDTO, QueryParams, StatementQueryParams, AggregateCreateDTO, AggregateEntity, AggregateFindDTO, PageAggregateEntity, ApiResponse, GroupCreateDTO, GroupAddRecordsDTO, GroupRecord } from '../../types';
 export declare class NodeServiceClient {
     private errorHandling;
     private axios;
@@ -97,6 +97,31 @@ export declare class NodeServiceClient {
      * Get all values for a property
      */
     getValuesForProperty(propertyUuid: UUID, params?: QueryParams): Promise<ApiResponse<UUPropertyValueDTO[]>>;
+    /**
+     * List all groups
+     * GET /api/access/groups
+     */
+    listGroups(): Promise<GroupCreateDTO[]>;
+    /**
+     * Create a new group
+     * POST /api/access/groups
+     */
+    createGroup(group: GroupCreateDTO): Promise<GroupCreateDTO>;
+    /**
+     * Get a group by UUID
+     * GET /api/access/groups/{groupUUID}
+     */
+    getGroup(groupUUID: UUID): Promise<GroupCreateDTO>;
+    /**
+     * List records in a group
+     * GET /api/access/groups/{groupUUID}/records
+     */
+    listGroupRecords(groupUUID: UUID): Promise<GroupRecord[]>;
+    /**
+     * Add records to a group
+     * POST /api/access/groups/{groupUUID}/records
+     */
+    addGroupRecords(groupUUID: UUID, records: GroupAddRecordsDTO): Promise<void>;
     /**
      * Update error handling configuration
      */

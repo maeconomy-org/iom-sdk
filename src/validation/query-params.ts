@@ -98,6 +98,16 @@ export const validateAggregateParams = (
     parentUUID: params.parentUUID
       ? validate(z.string().uuid(), params.parentUUID)
       : undefined,
+    readDefaultGroup: validate(z.boolean().optional(), params.readDefaultGroup),
+    readOwnGroups: validate(z.boolean().optional(), params.readOwnGroups),
+    readPublicGroups: validate(z.boolean().optional(), params.readPublicGroups),
+    readUserSharedGroups: validate(
+      z.boolean().optional(),
+      params.readUserSharedGroups
+    ),
+    groupUUIDList: params.groupUUIDList
+      ? validate(z.array(z.string()), params.groupUUIDList)
+      : undefined,
     searchTerm: validate(z.string().optional(), params.searchTerm),
     searchBy: validate(z.record(z.any()).optional(), params.searchBy)
   };

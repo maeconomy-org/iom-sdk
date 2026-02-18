@@ -4,7 +4,12 @@ import { SDKConfig, validateSDKConfig } from './config';
 import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
-import { AuthResponse } from './types';
+import { UpAuthServiceClient } from './services/up/up-client';
+import {
+  AuthResponse,
+  EmailPasswordLoginRequest,
+  EmailPasswordRegisterRequest
+} from './types';
 import { logInfo, logError } from './core/logger';
 
 export type AuthChangeListener = (state: {
@@ -34,6 +39,7 @@ export class Client {
   public auth: AuthServiceClient;
   public registry: RegistryServiceClient;
   public node: NodeServiceClient;
+  public up: UpAuthServiceClient | null = null;
 
   private readonly STORAGE_KEY = 'iom-auth-state';
 
@@ -61,6 +67,10 @@ export class Client {
       this.createServiceAxiosInstance(config.node.baseUrl),
       this.registry
     );
+
+    if (config.up) {
+      this.up = new UpAuthServiceClient(config.up, config.errorHandling || {});
+    }
 
     this.axiosInstance = this.node.getAxios();
 
@@ -280,6 +290,54 @@ export class Client {
       return { success: true, user: this.user || undefined };
     } catch (error) {
       logError('Login failed', error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Login with email and password via UP auth service
+   */
+  public async loginWithEmailPassword(
+    request: EmailPasswordLoginRequest
+  ): Promise<{ success: boolean; user?: AuthResponse }> {
+    if (!this.up) {
+      throw new Error(
+        'UP auth service not configured. Provide "up" in SDKConfig.'
+      );
+    }
+
+    try {
+      const response = await this.up.login(request);
+      this.token = response.token;
+      this.refreshToken = response.refreshToken;
+      this.user = response.user || null;
+      this.saveState();
+      logInfo('Email/password login successful');
+      return { success: true, user: this.user || undefined };
+    } catch (error) {
+      logError('Email/password login failed', error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Register a new user with email and password via UP auth service
+   */
+  public async register(
+    request: EmailPasswordRegisterRequest
+  ): Promise<{ success: boolean; message?: string }> {
+    if (!this.up) {
+      throw new Error(
+        'UP auth service not configured. Provide "up" in SDKConfig.'
+      );
+    }
+
+    try {
+      const message = await this.up.register(request);
+      logInfo('Registration successful');
+      return { success: true, message };
+    } catch (error) {
+      logError('Registration failed', error);
       return { success: false };
     }
   }

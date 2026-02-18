@@ -13,6 +13,11 @@ export interface AggregateFindDTO {
     hasHistory?: boolean;
     hasParentUUIDFilter?: boolean;
     parentUUID?: string;
+    readDefaultGroup?: boolean;
+    readOwnGroups?: boolean;
+    readPublicGroups?: boolean;
+    readUserSharedGroups?: boolean;
+    groupUUIDList?: string[];
     searchTerm?: string;
     searchBy?: Record<string, any>;
 }
@@ -146,6 +151,7 @@ export interface AggregateEntityCreateDTO {
     version?: string;
     description?: string;
     isTemplate?: boolean;
+    groupUUID?: UUID;
     parents?: UUID[];
     address?: AggregateUUAddressCreateDTO;
     files?: AggregateUUFileCreateDTO[];
