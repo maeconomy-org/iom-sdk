@@ -12,6 +12,8 @@ import {
   UUAddressDTO,
   QueryParams,
   StatementQueryParams,
+  UUStatementsAccessFindDTO,
+  UUStatementFindDTO,
   AggregateCreateDTO,
   AggregateEntity,
   AggregateFindDTO,
@@ -154,14 +156,41 @@ export class NodeServiceClient {
   // STATEMENT OPERATIONS
   // ============================================================================
 
+  /**
+   * Search statements via POST /api/UUStatements/search
+   * When subject or object is provided in uuStatementFind, accessFind is skipped server-side
+   */
+  async searchStatements(
+    body: UUStatementsAccessFindDTO
+  ): Promise<UUStatementDTO[]> {
+    const response = await this.axios.post<UUStatementDTO[]>(
+      '/api/UUStatements/search',
+      body
+    );
+    return response.data;
+  }
+
+  /**
+   * @deprecated Use searchStatements() instead. This wraps the old query-param interface
+   * into the new POST body format for backward compatibility.
+   */
   async getStatements(
     params?: StatementQueryParams
   ): Promise<UUStatementDTO[]> {
-    const response = await this.axios.get<UUStatementDTO[]>(
-      '/api/UUStatements',
-      { params }
-    );
-    return response.data;
+    const uuStatementFind: UUStatementFindDTO = {};
+    if (params?.subject) {
+      uuStatementFind.subject = params.subject;
+    }
+    if (params?.predicate) {
+      uuStatementFind.predicate = params.predicate;
+    }
+    if (params?.object) {
+      uuStatementFind.object = params.object;
+    }
+    if (params?.softDeleted !== undefined) {
+      uuStatementFind.softDeleted = params.softDeleted;
+    }
+    return this.searchStatements({ uuStatementFind });
   }
 
   /**
@@ -248,7 +277,7 @@ export class NodeServiceClient {
 
   async downloadFile(uuid: UUID): Promise<ArrayBuffer> {
     const response = await this.axios.get<ArrayBuffer>(
-      `/api/UUFile/download/${uuid}`,
+      `/api/UUFile/${uuid}/download`,
       {
         responseType: 'arraybuffer'
       }

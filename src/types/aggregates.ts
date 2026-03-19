@@ -2,11 +2,11 @@
  * Aggregate API types (from Swagger documentation)
  */
 
-import { UUID } from './services';
+import { UUID, AccessFindDTO } from './services';
 
 /**
- * Aggregate search parameters for the /api/Aggregate/search endpoint
- * Updated to support the new POST method with searchBy functionality
+ * Aggregate search parameters for the POST /api/Aggregate/search endpoint
+ * Access control is now nested under accessFind (same AccessFindDTO as statements)
  */
 export interface AggregateFindDTO {
   page?: number;
@@ -15,11 +15,7 @@ export interface AggregateFindDTO {
   hasHistory?: boolean;
   hasParentUUIDFilter?: boolean;
   parentUUID?: string;
-  readDefaultGroup?: boolean;
-  readOwnGroups?: boolean;
-  readPublicGroups?: boolean;
-  readUserSharedGroups?: boolean;
-  groupUUIDList?: string[];
+  accessFind?: AccessFindDTO;
   searchTerm?: string;
   searchBy?: Record<string, any>;
 }

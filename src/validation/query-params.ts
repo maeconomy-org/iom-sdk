@@ -80,7 +80,7 @@ export const validateAggregateParams = (
     return undefined;
   }
 
-  const validatedParams = {
+  const validatedParams: Record<string, any> = {
     page:
       params.page !== undefined
         ? validate(z.number().int().min(0), params.page)
@@ -98,19 +98,33 @@ export const validateAggregateParams = (
     parentUUID: params.parentUUID
       ? validate(z.string().uuid(), params.parentUUID)
       : undefined,
-    readDefaultGroup: validate(z.boolean().optional(), params.readDefaultGroup),
-    readOwnGroups: validate(z.boolean().optional(), params.readOwnGroups),
-    readPublicGroups: validate(z.boolean().optional(), params.readPublicGroups),
-    readUserSharedGroups: validate(
-      z.boolean().optional(),
-      params.readUserSharedGroups
-    ),
-    groupUUIDList: params.groupUUIDList
-      ? validate(z.array(z.string()), params.groupUUIDList)
-      : undefined,
     searchTerm: validate(z.string().optional(), params.searchTerm),
     searchBy: validate(z.record(z.any()).optional(), params.searchBy)
   };
+
+  if (params.accessFind) {
+    validatedParams.accessFind = {
+      readDefaultGroup: validate(
+        z.boolean().optional(),
+        params.accessFind.readDefaultGroup
+      ),
+      readOwnGroups: validate(
+        z.boolean().optional(),
+        params.accessFind.readOwnGroups
+      ),
+      readPublicGroups: validate(
+        z.boolean().optional(),
+        params.accessFind.readPublicGroups
+      ),
+      readUserSharedGroups: validate(
+        z.boolean().optional(),
+        params.accessFind.readUserSharedGroups
+      ),
+      groupUUIDList: params.accessFind.groupUUIDList
+        ? validate(z.array(z.string()), params.accessFind.groupUUIDList)
+        : undefined
+    };
+  }
 
   // Remove undefined values from params
   return Object.fromEntries(

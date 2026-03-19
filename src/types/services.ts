@@ -45,6 +45,15 @@ export interface QueryParams {
   softDeleted?: boolean;
 }
 
+// Access control filter for group-based queries
+export interface AccessFindDTO {
+  readDefaultGroup?: boolean;
+  readOwnGroups?: boolean;
+  readPublicGroups?: boolean;
+  readUserSharedGroups?: boolean;
+  groupUUIDList?: string[];
+}
+
 // UUStatementFindDTO (from Swagger)
 export interface UUStatementFindDTO {
   subject?: UUID;
@@ -53,7 +62,14 @@ export interface UUStatementFindDTO {
   softDeleted?: boolean;
 }
 
-// Statement query parameters (based on UUStatementFindDTO from Swagger)
+// Search body for POST /api/UUStatements/search
+// When subject or object is provided, accessFind is skipped server-side
+export interface UUStatementsAccessFindDTO {
+  uuStatementFind?: UUStatementFindDTO;
+  accessFind?: AccessFindDTO;
+}
+
+/** @deprecated Use UUStatementsAccessFindDTO with searchStatements() instead */
 export interface StatementQueryParams extends UUStatementFindDTO {}
 
 // UUStatementsPropertyValue Data Transfer Object

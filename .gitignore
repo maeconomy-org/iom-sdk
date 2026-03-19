@@ -218,3 +218,5 @@ $RECYCLE.BIN/
 docs/
 .cursorrules
 memory-bank/
+
+dist/**
