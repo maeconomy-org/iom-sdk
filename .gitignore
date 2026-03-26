@@ -220,3 +220,5 @@ docs/
 memory-bank/
 
 dist/**
+
+**/settings.local.json

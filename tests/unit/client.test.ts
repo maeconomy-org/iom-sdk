@@ -29,7 +29,11 @@ describe('Client', () => {
   beforeEach(() => {
     // Setup localStorage mock
     Object.defineProperty(global, 'window', {
-      value: { localStorage: localStorageMock },
+      value: {
+        localStorage: localStorageMock,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn()
+      },
       writable: true
     });
     Object.defineProperty(global, 'localStorage', {
@@ -149,6 +153,87 @@ describe('Client', () => {
       const client = createClient(config);
       expect(client.isAuthenticated()).toBe(true);
       expect(client.getToken()).toBe(validToken);
+    });
+  });
+
+  describe('tokenStorage config', () => {
+    it('should skip cross-tab sync for memory storage', () => {
+      const client = createClient({ ...config, tokenStorage: 'memory' });
+      // addEventListener should NOT be called for memory storage
+      expect(window.addEventListener).not.toHaveBeenCalled();
+      expect(client).toBeDefined();
+    });
+
+    it('should skip cross-tab sync for sessionStorage', () => {
+      (global as any).sessionStorage = localStorageMock;
+      const client = createClient({ ...config, tokenStorage: 'sessionStorage' });
+      expect(window.addEventListener).not.toHaveBeenCalled();
+      expect(client).toBeDefined();
+      delete (global as any).sessionStorage;
+    });
+
+    it('should enable cross-tab sync for localStorage (default)', () => {
+      const client = createClient(config);
+      expect(window.addEventListener).toHaveBeenCalledWith('storage', expect.any(Function));
+      expect(client).toBeDefined();
+    });
+  });
+
+  describe('destroy', () => {
+    it('should clean up cross-tab sync listener', () => {
+      const client = createClient(config);
+      client.destroy();
+      expect(window.removeEventListener).toHaveBeenCalledWith('storage', expect.any(Function));
+    });
+
+    it('should be safe to call destroy multiple times', () => {
+      const client = createClient(config);
+      client.destroy();
+      expect(() => client.destroy()).not.toThrow();
+    });
+  });
+
+  describe('onAuthStateChange unsubscribe', () => {
+    it('should stop notifying after unsubscribe', () => {
+      const client = createClient(config);
+      const listener = jest.fn();
+
+      const unsubscribe = client.onAuthStateChange(listener);
+      // 1 call on subscribe
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      unsubscribe();
+
+      client.logout();
+      // still 1 — no more calls after unsubscribe
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getValidToken edge cases', () => {
+    it('should return null when no token and no refresh token', async () => {
+      const client = createClient(config);
+      const result = await client.getValidToken();
+      expect(result).toBeNull();
+    });
+
+    it('should return token directly when not expired', async () => {
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+      const tokenPayload = JSON.stringify({ exp, userUUID: 'user-123' });
+      const validToken = `header.${btoa(tokenPayload)}.signature`;
+
+      localStorageMock.setItem(
+        'iom-auth-state',
+        JSON.stringify({
+          token: validToken,
+          refreshToken: 'refresh-token',
+          user: { userUUID: 'user-123' }
+        })
+      );
+
+      const client = createClient(config);
+      const result = await client.getValidToken();
+      expect(result).toBe(validToken);
     });
   });
 });
