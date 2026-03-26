@@ -20,6 +20,7 @@ import {
   PageAggregateEntity,
   Predicate,
   ApiResponse,
+  RequestOptions,
   GroupCreateDTO,
   GroupAddRecordsDTO,
   GroupRecord
@@ -53,9 +54,13 @@ export class NodeServiceClient {
   // OBJECT OPERATIONS
   // ============================================================================
 
-  async getObjects(params?: QueryParams): Promise<UUObjectDTO[]> {
+  async getObjects(
+    params?: QueryParams,
+    options?: RequestOptions
+  ): Promise<UUObjectDTO[]> {
     const response = await this.axios.get<UUObjectDTO[]>('/api/UUObject', {
-      params
+      params,
+      signal: options?.signal
     });
     return response.data;
   }
@@ -79,9 +84,13 @@ export class NodeServiceClient {
   // PROPERTY OPERATIONS
   // ============================================================================
 
-  async getProperties(params?: QueryParams): Promise<UUPropertyDTO[]> {
+  async getProperties(
+    params?: QueryParams,
+    options?: RequestOptions
+  ): Promise<UUPropertyDTO[]> {
     const response = await this.axios.get<UUPropertyDTO[]>('/api/UUProperty', {
-      params
+      params,
+      signal: options?.signal
     });
     return response.data;
   }
@@ -117,10 +126,13 @@ export class NodeServiceClient {
   // PROPERTY VALUE OPERATIONS
   // ============================================================================
 
-  async getPropertyValues(params?: QueryParams): Promise<UUPropertyValueDTO[]> {
+  async getPropertyValues(
+    params?: QueryParams,
+    options?: RequestOptions
+  ): Promise<UUPropertyValueDTO[]> {
     const response = await this.axios.get<UUPropertyValueDTO[]>(
       '/api/UUPropertyValue',
-      { params }
+      { params, signal: options?.signal }
     );
     return response.data;
   }
@@ -161,11 +173,13 @@ export class NodeServiceClient {
    * When subject or object is provided in uuStatementFind, accessFind is skipped server-side
    */
   async searchStatements(
-    body: UUStatementsAccessFindDTO
+    body: UUStatementsAccessFindDTO,
+    options?: RequestOptions
   ): Promise<UUStatementDTO[]> {
     const response = await this.axios.post<UUStatementDTO[]>(
       '/api/UUStatements/search',
-      body
+      body,
+      { signal: options?.signal }
     );
     return response.data;
   }
@@ -175,7 +189,8 @@ export class NodeServiceClient {
    * into the new POST body format for backward compatibility.
    */
   async getStatements(
-    params?: StatementQueryParams
+    params?: StatementQueryParams,
+    options?: RequestOptions
   ): Promise<UUStatementDTO[]> {
     const uuStatementFind: UUStatementFindDTO = {};
     if (params?.subject) {
@@ -190,7 +205,7 @@ export class NodeServiceClient {
     if (params?.softDeleted !== undefined) {
       uuStatementFind.softDeleted = params.softDeleted;
     }
-    return this.searchStatements({ uuStatementFind });
+    return this.searchStatements({ uuStatementFind }, options);
   }
 
   /**
@@ -234,9 +249,13 @@ export class NodeServiceClient {
   // FILE OPERATIONS
   // ============================================================================
 
-  async getFiles(params?: QueryParams): Promise<UUFileDTO[]> {
+  async getFiles(
+    params?: QueryParams,
+    options?: RequestOptions
+  ): Promise<UUFileDTO[]> {
     const response = await this.axios.get<UUFileDTO[]>('/api/UUFile', {
-      params
+      params,
+      signal: options?.signal
     });
     return response.data;
   }
@@ -270,16 +289,22 @@ export class NodeServiceClient {
     return response.data;
   }
 
-  async getFile(uuid: UUID): Promise<UUFileDTO> {
-    const response = await this.axios.get<UUFileDTO>(`/api/UUFile/${uuid}`);
+  async getFile(uuid: UUID, options?: RequestOptions): Promise<UUFileDTO> {
+    const response = await this.axios.get<UUFileDTO>(`/api/UUFile/${uuid}`, {
+      signal: options?.signal
+    });
     return response.data;
   }
 
-  async downloadFile(uuid: UUID): Promise<ArrayBuffer> {
+  async downloadFile(
+    uuid: UUID,
+    options?: RequestOptions
+  ): Promise<ArrayBuffer> {
     const response = await this.axios.get<ArrayBuffer>(
       `/api/UUFile/${uuid}/download`,
       {
-        responseType: 'arraybuffer'
+        responseType: 'arraybuffer',
+        signal: options?.signal
       }
     );
     return response.data;
@@ -296,9 +321,13 @@ export class NodeServiceClient {
   // ADDRESS OPERATIONS
   // ============================================================================
 
-  async getAddresses(params?: QueryParams): Promise<UUAddressDTO[]> {
+  async getAddresses(
+    params?: QueryParams,
+    options?: RequestOptions
+  ): Promise<UUAddressDTO[]> {
     const response = await this.axios.get<UUAddressDTO[]>('/api/UUAddress', {
-      params
+      params,
+      signal: options?.signal
     });
     return response.data;
   }
@@ -333,11 +362,13 @@ export class NodeServiceClient {
   // ============================================================================
 
   async searchAggregates(
-    searchParams: AggregateFindDTO
+    searchParams: AggregateFindDTO,
+    options?: RequestOptions
   ): Promise<PageAggregateEntity> {
     const response = await this.axios.post<PageAggregateEntity>(
       '/api/Aggregate/search',
-      searchParams
+      searchParams,
+      { signal: options?.signal }
     );
     return response.data;
   }
@@ -641,9 +672,13 @@ export class NodeServiceClient {
    * List all groups
    * GET /api/access/groups
    */
-  async listGroups(): Promise<GroupCreateDTO[]> {
-    const response =
-      await this.axios.get<GroupCreateDTO[]>('/api/access/groups');
+  async listGroups(options?: RequestOptions): Promise<GroupCreateDTO[]> {
+    const response = await this.axios.get<GroupCreateDTO[]>(
+      '/api/access/groups',
+      {
+        signal: options?.signal
+      }
+    );
     return response.data;
   }
 
@@ -663,9 +698,13 @@ export class NodeServiceClient {
    * Get a group by UUID
    * GET /api/access/groups/{groupUUID}
    */
-  async getGroup(groupUUID: UUID): Promise<GroupCreateDTO> {
+  async getGroup(
+    groupUUID: UUID,
+    options?: RequestOptions
+  ): Promise<GroupCreateDTO> {
     const response = await this.axios.get<GroupCreateDTO>(
-      `/api/access/groups/${groupUUID}`
+      `/api/access/groups/${groupUUID}`,
+      { signal: options?.signal }
     );
     return response.data;
   }
@@ -674,9 +713,13 @@ export class NodeServiceClient {
    * List records in a group
    * GET /api/access/groups/{groupUUID}/records
    */
-  async listGroupRecords(groupUUID: UUID): Promise<GroupRecord[]> {
+  async listGroupRecords(
+    groupUUID: UUID,
+    options?: RequestOptions
+  ): Promise<GroupRecord[]> {
     const response = await this.axios.get<GroupRecord[]>(
-      `/api/access/groups/${groupUUID}/records`
+      `/api/access/groups/${groupUUID}/records`,
+      { signal: options?.signal }
     );
     return response.data;
   }

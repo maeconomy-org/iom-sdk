@@ -11,6 +11,12 @@ import {
   EmailPasswordRegisterRequest
 } from './types';
 import { logInfo, logError } from './core/logger';
+import {
+  TokenStorage,
+  AuthState,
+  createTokenStorage,
+  startCrossTabSync
+} from './core/token-storage';
 
 export type AuthChangeListener = (state: {
   isAuthenticated: boolean;
@@ -42,12 +48,16 @@ export class Client {
   public up: UpAuthServiceClient | null = null;
 
   private readonly STORAGE_KEY = 'iom-auth-state';
+  private storage: TokenStorage;
+  private cleanupCrossTabSync: (() => void) | null = null;
 
   constructor(config: SDKConfig) {
     validateSDKConfig(config);
     this.config = config;
 
+    this.storage = createTokenStorage(config.tokenStorage, this.STORAGE_KEY);
     this.loadState();
+    this.initCrossTabSync();
 
     this.auth = new AuthServiceClient(
       config.auth,
@@ -238,11 +248,12 @@ export class Client {
       async error => {
         const originalRequest = error.config;
 
-        console.warn('[SDK] Axios response error', {
+        logError('Axios response error', {
           url: originalRequest?.url,
           status: error.response?.status
         });
 
+        // Handle 401 - token refresh
         if (
           error.response?.status === 401 &&
           !originalRequest._retry &&
@@ -258,6 +269,38 @@ export class Client {
             logError('Axios 401 refresh failed', err);
             this.logout();
           }
+        }
+
+        // Retry on network errors and 5xx (not on 4xx)
+        const retryCount = originalRequest._retryCount || 0;
+        const maxRetries =
+          this.config.errorHandling?.autoRetryNetwork?.maxRetries ?? 0;
+        const isRetryable =
+          maxRetries > 0 &&
+          retryCount < maxRetries &&
+          !originalRequest._retry && // Don't retry if already retried for 401
+          (!error.response || // Network error (no response)
+            error.response.status >= 500); // Server error
+
+        if (isRetryable) {
+          originalRequest._retryCount = retryCount + 1;
+
+          const baseDelay =
+            this.config.errorHandling?.autoRetryNetwork?.delay ?? 1000;
+          const backoff =
+            this.config.errorHandling?.autoRetryNetwork?.backoff ??
+            'exponential';
+          const delay =
+            backoff === 'exponential'
+              ? baseDelay * Math.pow(2, retryCount)
+              : baseDelay * (retryCount + 1);
+
+          logInfo(
+            `Retrying request (${retryCount + 1}/${maxRetries}) after ${delay}ms`
+          );
+
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return instance(originalRequest);
         }
 
         return Promise.reject(error);
@@ -357,38 +400,64 @@ export class Client {
      ========================= */
 
   private loadState(): void {
-    if (typeof window === 'undefined') return;
-
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    if (!stored) return;
-
-    try {
-      const { token, refreshToken, user } = JSON.parse(stored);
-      this.token = token;
-      this.refreshToken = refreshToken;
-      this.user = user;
-    } catch {
-      localStorage.removeItem(this.STORAGE_KEY);
-    }
+    const state = this.storage.get();
+    if (!state) return;
+    this.token = state.token;
+    this.refreshToken = state.refreshToken;
+    this.user = state.user;
   }
 
   private saveState(): void {
-    if (typeof window === 'undefined') return;
+    const state: AuthState = {
+      token: this.token,
+      refreshToken: this.refreshToken,
+      user: this.user
+    };
+    this.storage.set(state);
+    this.notifyListeners();
+  }
 
-    if (this.refreshToken) {
-      localStorage.setItem(
-        this.STORAGE_KEY,
-        JSON.stringify({
-          token: this.token,
-          refreshToken: this.refreshToken,
-          user: this.user
-        })
-      );
-    } else {
-      localStorage.removeItem(this.STORAGE_KEY);
+  /**
+   * Start listening for auth state changes in other tabs.
+   * Only relevant for localStorage strategy (sessionStorage is tab-scoped).
+   */
+  private initCrossTabSync(): void {
+    if (
+      this.config.tokenStorage === 'sessionStorage' ||
+      this.config.tokenStorage === 'memory'
+    ) {
+      return; // No cross-tab sync for non-shared storage
     }
 
-    this.notifyListeners();
+    this.cleanupCrossTabSync = startCrossTabSync(
+      this.STORAGE_KEY,
+      externalState => {
+        if (!externalState) {
+          // Other tab logged out
+          this.token = null;
+          this.refreshToken = null;
+          this.user = null;
+          this.refreshPromise = null;
+          this.isRefreshing = false;
+          this.notifyListeners();
+        } else {
+          // Other tab updated tokens (e.g. after refresh)
+          this.token = externalState.token;
+          this.refreshToken = externalState.refreshToken;
+          this.user = externalState.user;
+          this.notifyListeners();
+        }
+      }
+    );
+  }
+
+  /**
+   * Clean up cross-tab sync listener.
+   * Call this when the client is no longer needed to prevent memory leaks.
+   */
+  public destroy(): void {
+    this.cleanupCrossTabSync?.();
+    this.cleanupCrossTabSync = null;
   }
 
   private notifyListeners(): void {

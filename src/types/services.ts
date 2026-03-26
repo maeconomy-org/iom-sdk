@@ -40,6 +40,11 @@ export enum Predicate {
 }
 
 // Common query parameters
+export interface RequestOptions {
+  /** AbortSignal for request cancellation (e.g. from React Query) */
+  signal?: AbortSignal;
+}
+
 export interface QueryParams {
   uuid?: UUID;
   softDeleted?: boolean;
