@@ -63,8 +63,12 @@ describe('LocalStorageTokenStorage', () => {
 
   const makeMockStorage = () => ({
     getItem: (k: string) => store[k] ?? null,
-    setItem: (k: string, v: string) => { store[k] = v; },
-    removeItem: (k: string) => { delete store[k]; }
+    setItem: (k: string, v: string) => {
+      store[k] = v;
+    },
+    removeItem: (k: string) => {
+      delete store[k];
+    }
   });
 
   beforeEach(() => {
@@ -117,7 +121,10 @@ describe('LocalStorageTokenStorage', () => {
   });
 
   it('should return null when window is undefined', () => {
-    Object.defineProperty(global, 'window', { value: undefined, writable: true });
+    Object.defineProperty(global, 'window', {
+      value: undefined,
+      writable: true
+    });
     const s = new LocalStorageTokenStorage(KEY);
     expect(s.get()).toBeNull();
   });
@@ -133,8 +140,12 @@ describe('SessionStorageTokenStorage', () => {
 
   const makeMockStorage = () => ({
     getItem: (k: string) => store[k] ?? null,
-    setItem: (k: string, v: string) => { store[k] = v; },
-    removeItem: (k: string) => { delete store[k]; }
+    setItem: (k: string, v: string) => {
+      store[k] = v;
+    },
+    removeItem: (k: string) => {
+      delete store[k];
+    }
   });
 
   beforeEach(() => {
@@ -207,15 +218,18 @@ describe('createTokenStorage', () => {
 // ---------------------------------------------------------------------------
 
 describe('startCrossTabSync', () => {
-  let listeners: Map<string, Function>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let listeners: Map<string, (...args: any[]) => void>;
 
   beforeEach(() => {
     listeners = new Map();
     Object.defineProperty(global, 'window', {
       value: {
-        addEventListener: jest.fn((event: string, handler: Function) => {
-          listeners.set(event, handler);
-        }),
+        addEventListener: jest.fn(
+          (event: string, handler: (...args: any[]) => void) => {
+            listeners.set(event, handler);
+          }
+        ),
         removeEventListener: jest.fn((event: string) => {
           listeners.delete(event);
         })
@@ -227,13 +241,19 @@ describe('startCrossTabSync', () => {
   it('should register a storage event listener', () => {
     const cb = jest.fn();
     startCrossTabSync('my-key', cb);
-    expect(window.addEventListener).toHaveBeenCalledWith('storage', expect.any(Function));
+    expect(window.addEventListener).toHaveBeenCalledWith(
+      'storage',
+      expect.any(Function)
+    );
   });
 
   it('should return a cleanup function that removes the listener', () => {
     const cleanup = startCrossTabSync('my-key', jest.fn());
     cleanup();
-    expect(window.removeEventListener).toHaveBeenCalledWith('storage', expect.any(Function));
+    expect(window.removeEventListener).toHaveBeenCalledWith(
+      'storage',
+      expect.any(Function)
+    );
   });
 
   it('should ignore storage events for different keys', () => {
@@ -256,7 +276,10 @@ describe('startCrossTabSync', () => {
     const cb = jest.fn();
     startCrossTabSync('my-key', cb);
     const handler = listeners.get('storage')!;
-    handler({ key: 'my-key', newValue: JSON.stringify(validState) } as StorageEvent);
+    handler({
+      key: 'my-key',
+      newValue: JSON.stringify(validState)
+    } as StorageEvent);
     expect(cb).toHaveBeenCalledWith(validState);
   });
 
@@ -264,12 +287,17 @@ describe('startCrossTabSync', () => {
     const cb = jest.fn();
     startCrossTabSync('my-key', cb);
     const handler = listeners.get('storage')!;
-    expect(() => handler({ key: 'my-key', newValue: '{bad' } as StorageEvent)).not.toThrow();
+    expect(() =>
+      handler({ key: 'my-key', newValue: '{bad' } as StorageEvent)
+    ).not.toThrow();
     expect(cb).not.toHaveBeenCalled();
   });
 
   it('should return noop when window is undefined (SSR)', () => {
-    Object.defineProperty(global, 'window', { value: undefined, writable: true });
+    Object.defineProperty(global, 'window', {
+      value: undefined,
+      writable: true
+    });
     const cleanup = startCrossTabSync('k', jest.fn());
     expect(cleanup).toBeInstanceOf(Function);
     expect(() => cleanup()).not.toThrow();

@@ -166,7 +166,10 @@ describe('Client', () => {
 
     it('should skip cross-tab sync for sessionStorage', () => {
       (global as any).sessionStorage = localStorageMock;
-      const client = createClient({ ...config, tokenStorage: 'sessionStorage' });
+      const client = createClient({
+        ...config,
+        tokenStorage: 'sessionStorage'
+      });
       expect(window.addEventListener).not.toHaveBeenCalled();
       expect(client).toBeDefined();
       delete (global as any).sessionStorage;
@@ -174,7 +177,10 @@ describe('Client', () => {
 
     it('should enable cross-tab sync for localStorage (default)', () => {
       const client = createClient(config);
-      expect(window.addEventListener).toHaveBeenCalledWith('storage', expect.any(Function));
+      expect(window.addEventListener).toHaveBeenCalledWith(
+        'storage',
+        expect.any(Function)
+      );
       expect(client).toBeDefined();
     });
   });
@@ -183,7 +189,10 @@ describe('Client', () => {
     it('should clean up cross-tab sync listener', () => {
       const client = createClient(config);
       client.destroy();
-      expect(window.removeEventListener).toHaveBeenCalledWith('storage', expect.any(Function));
+      expect(window.removeEventListener).toHaveBeenCalledWith(
+        'storage',
+        expect.any(Function)
+      );
     });
 
     it('should be safe to call destroy multiple times', () => {
