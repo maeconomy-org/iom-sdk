@@ -8,6 +8,8 @@ import {
   validateServiceConfig,
   createDefaultServiceConfig,
   createDefaultErrorHandling,
+  resolveServiceConfigs,
+  buildCertAuthBaseUrl,
   SDKConfig,
   ServiceConfig
 } from '../../src/config';
@@ -15,9 +17,7 @@ import {
 describe('SDK Configuration Validation', () => {
   // Helper to create a valid config
   const createValidConfig = (): SDKConfig => ({
-    auth: { baseUrl: 'https://auth.example.com' },
-    registry: { baseUrl: 'https://registry.example.com' },
-    node: { baseUrl: 'https://api.example.com' },
+    baseUrl: 'https://example.com',
     certificate: {
       cert: 'cert-content',
       key: 'key-content'
@@ -31,33 +31,20 @@ describe('SDK Configuration Validation', () => {
         expect(() => validateSDKConfig(config)).not.toThrow();
       });
 
-      it('should reject missing auth configuration', () => {
+      it('should reject missing baseUrl', () => {
         const config = createValidConfig();
         // @ts-expect-error Testing missing field
-        delete config.auth;
+        delete config.baseUrl;
 
-        expect(() => validateSDKConfig(config)).toThrow(
-          'Auth service configuration is required'
-        );
+        expect(() => validateSDKConfig(config)).toThrow('baseUrl is required');
       });
 
-      it('should reject missing registry configuration', () => {
+      it('should reject invalid baseUrl', () => {
         const config = createValidConfig();
-        // @ts-expect-error Testing missing field
-        delete config.registry;
+        config.baseUrl = 'not-a-url';
 
         expect(() => validateSDKConfig(config)).toThrow(
-          'Registry service configuration is required'
-        );
-      });
-
-      it('should reject missing node configuration', () => {
-        const config = createValidConfig();
-        // @ts-expect-error Testing missing field
-        delete config.node;
-
-        expect(() => validateSDKConfig(config)).toThrow(
-          'Node service configuration is required'
+          'baseUrl must be a valid URL'
         );
       });
 
@@ -104,48 +91,45 @@ describe('SDK Configuration Validation', () => {
       });
 
       it('should accept valid HTTP URLs', () => {
-        const config = createValidConfig();
-        config.auth.baseUrl = 'http://localhost:7443';
-        config.registry.baseUrl = 'http://localhost:8443';
-        config.node.baseUrl = 'http://localhost:9443';
+        const config: SDKConfig = {
+          baseUrl: 'http://localhost:3000'
+        };
 
         expect(() => validateSDKConfig(config)).not.toThrow();
       });
 
-      it('should reject invalid auth URL', () => {
+      it('should reject invalid service override auth URL', () => {
         const config = createValidConfig();
-        config.auth.baseUrl = 'not-a-valid-url';
+        config.services = { auth: { baseUrl: 'not-a-valid-url' } };
 
         expect(() => validateSDKConfig(config)).toThrow(
           'auth service baseUrl must be a valid URL'
         );
       });
 
-      it('should reject invalid registry URL', () => {
+      it('should reject invalid service override registry URL', () => {
         const config = createValidConfig();
-        config.registry.baseUrl = 'invalid';
+        config.services = { registry: { baseUrl: 'invalid' } };
 
         expect(() => validateSDKConfig(config)).toThrow(
           'registry service baseUrl must be a valid URL'
         );
       });
 
-      it('should reject invalid node URL', () => {
+      it('should reject invalid service override node URL', () => {
         const config = createValidConfig();
-        config.node.baseUrl = '://missing-protocol.com';
+        config.services = { node: { baseUrl: '://missing-protocol.com' } };
 
         expect(() => validateSDKConfig(config)).toThrow(
           'node service baseUrl must be a valid URL'
         );
       });
 
-      it('should reject empty URL', () => {
+      it('should reject empty baseUrl', () => {
         const config = createValidConfig();
-        config.auth.baseUrl = '';
+        config.baseUrl = '';
 
-        expect(() => validateSDKConfig(config)).toThrow(
-          'auth service baseUrl is required'
-        );
+        expect(() => validateSDKConfig(config)).toThrow('baseUrl is required');
       });
     });
 
@@ -376,37 +360,118 @@ describe('SDK Configuration Validation', () => {
     });
   });
 
+  describe('resolveServiceConfigs', () => {
+    it('should derive service URLs from baseUrl with default paths', () => {
+      const resolved = resolveServiceConfigs({
+        baseUrl: 'https://maeconomy-dev.recheck.io'
+      });
+
+      expect(resolved.auth.baseUrl).toBe(
+        'https://maeconomy-dev.recheck.io/auth'
+      );
+      expect(resolved.registry.baseUrl).toBe(
+        'https://maeconomy-dev.recheck.io/registrar'
+      );
+      expect(resolved.node.baseUrl).toBe(
+        'https://maeconomy-dev.recheck.io/node-network'
+      );
+    });
+
+    it('should build cert auth URL with port 553 by default', () => {
+      const resolved = resolveServiceConfigs({
+        baseUrl: 'https://maeconomy-dev.recheck.io'
+      });
+
+      expect(resolved.certAuth.baseUrl).toBe(
+        'https://maeconomy-dev.recheck.io:553/auth'
+      );
+    });
+
+    it('should allow custom certPort', () => {
+      const resolved = resolveServiceConfigs({
+        baseUrl: 'https://maeconomy-dev.recheck.io',
+        certPort: 8443
+      });
+
+      expect(resolved.certAuth.baseUrl).toBe(
+        'https://maeconomy-dev.recheck.io:8443/auth'
+      );
+    });
+
+    it('should allow service baseUrl overrides', () => {
+      const resolved = resolveServiceConfigs({
+        baseUrl: 'https://maeconomy-dev.recheck.io',
+        services: {
+          auth: { baseUrl: 'https://custom-auth.example.com' },
+          node: { baseUrl: 'https://custom-node.example.com' }
+        }
+      });
+
+      expect(resolved.auth.baseUrl).toBe('https://custom-auth.example.com');
+      expect(resolved.node.baseUrl).toBe('https://custom-node.example.com');
+      // registry still uses default
+      expect(resolved.registry.baseUrl).toBe(
+        'https://maeconomy-dev.recheck.io/registrar'
+      );
+    });
+
+    it('should carry service overrides like timeout and retries', () => {
+      const resolved = resolveServiceConfigs({
+        baseUrl: 'https://example.com',
+        services: {
+          auth: { timeout: 5000, retries: 2 }
+        }
+      });
+
+      expect(resolved.auth.timeout).toBe(5000);
+      expect(resolved.auth.retries).toBe(2);
+    });
+
+    it('should set refreshBaseUrl on certAuth to the normal auth URL', () => {
+      const resolved = resolveServiceConfigs({
+        baseUrl: 'https://maeconomy-dev.recheck.io'
+      });
+
+      expect(resolved.certAuth.refreshBaseUrl).toBe(
+        'https://maeconomy-dev.recheck.io/auth'
+      );
+    });
+
+    it('should strip trailing slash from baseUrl', () => {
+      const resolved = resolveServiceConfigs({
+        baseUrl: 'https://example.com/'
+      });
+
+      expect(resolved.auth.baseUrl).toBe('https://example.com/auth');
+    });
+  });
+
+  describe('buildCertAuthBaseUrl', () => {
+    it('should replace port on HTTPS URL', () => {
+      expect(buildCertAuthBaseUrl('https://example.com/auth')).toBe(
+        'https://example.com:553/auth'
+      );
+    });
+
+    it('should accept custom port', () => {
+      expect(buildCertAuthBaseUrl('https://example.com/auth', 8443)).toBe(
+        'https://example.com:8443/auth'
+      );
+    });
+  });
+
   describe('Edge Cases', () => {
-    it('should handle URLs with ports', () => {
-      const config = createValidConfig();
-      config.auth.baseUrl = 'https://localhost:7443';
-      config.registry.baseUrl = 'https://localhost:8443';
-      config.node.baseUrl = 'https://localhost:9443';
-
+    it('should handle baseUrl with port', () => {
+      const config: SDKConfig = { baseUrl: 'https://localhost:7443' };
       expect(() => validateSDKConfig(config)).not.toThrow();
     });
 
-    it('should handle URLs with paths', () => {
+    it('should handle service overrides with custom headers', () => {
       const config = createValidConfig();
-      config.auth.baseUrl = 'https://api.example.com/auth';
-      config.registry.baseUrl = 'https://api.example.com/registry';
-      config.node.baseUrl = 'https://api.example.com/node';
-
-      expect(() => validateSDKConfig(config)).not.toThrow();
-    });
-
-    it('should handle URLs with query parameters', () => {
-      const config = createValidConfig();
-      config.auth.baseUrl = 'https://example.com?version=v1';
-
-      expect(() => validateSDKConfig(config)).not.toThrow();
-    });
-
-    it('should handle custom headers', () => {
-      const config = createValidConfig();
-      config.auth.headers = {
-        'X-Custom-Header': 'value',
-        Accept: 'application/json'
+      config.services = {
+        auth: {
+          headers: { 'X-Custom-Header': 'value', Accept: 'application/json' }
+        }
       };
 
       expect(() => validateSDKConfig(config)).not.toThrow();

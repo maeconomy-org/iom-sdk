@@ -50,9 +50,7 @@ describe('SDK Validation Tests', () => {
 
   describe('SDK Configuration Validation', () => {
     const createValidConfig = (): SDKConfig => ({
-      auth: { baseUrl: 'https://auth.example.com' },
-      registry: { baseUrl: 'https://registry.example.com' },
-      node: { baseUrl: 'https://api.example.com' },
+      baseUrl: 'https://example.com',
       certificate: {
         cert: 'cert-content',
         key: 'key-content'
@@ -65,74 +63,40 @@ describe('SDK Validation Tests', () => {
     });
 
     it('should reject configuration with missing required fields', () => {
-      // Missing auth
+      // Missing baseUrl
       expect(() =>
-        validateSDKConfig({
-          registry: { baseUrl: 'https://registry.example.com' },
-          node: { baseUrl: 'https://api.example.com' }
-        } as any)
-      ).toThrow();
-
-      // Missing registry
-      expect(() =>
-        validateSDKConfig({
-          auth: { baseUrl: 'https://auth.example.com' },
-          node: { baseUrl: 'https://api.example.com' }
-        } as any)
-      ).toThrow();
-
-      // Missing node
-      expect(() =>
-        validateSDKConfig({
-          auth: { baseUrl: 'https://auth.example.com' },
-          registry: { baseUrl: 'https://registry.example.com' }
-        } as any)
+        validateSDKConfig({} as any)
       ).toThrow();
     });
 
     it('should reject configuration with invalid URLs', () => {
       expect(() =>
         validateSDKConfig({
-          auth: { baseUrl: 'invalid-url' },
-          registry: { baseUrl: 'https://registry.example.com' },
-          node: { baseUrl: 'https://api.example.com' },
-          certificate: { cert: 'cert', key: 'key' }
+          baseUrl: 'invalid-url'
         })
       ).toThrow();
 
       expect(() =>
         validateSDKConfig({
-          auth: { baseUrl: 'https://auth.example.com' },
-          registry: { baseUrl: 'not-a-url' },
-          node: { baseUrl: 'https://api.example.com' },
-          certificate: { cert: 'cert', key: 'key' }
+          baseUrl: 'https://example.com',
+          services: { auth: { baseUrl: 'not-a-url' } }
         })
       ).toThrow();
 
       expect(() =>
         validateSDKConfig({
-          auth: { baseUrl: 'https://auth.example.com' },
-          registry: { baseUrl: 'https://registry.example.com' },
-          node: { baseUrl: '' },
-          certificate: { cert: 'cert', key: 'key' }
+          baseUrl: ''
         })
       ).toThrow();
     });
 
     it('should validate optional configuration fields', () => {
       const configWithOptionals: SDKConfig = {
-        auth: {
-          baseUrl: 'https://auth.example.com',
-          timeout: 10000,
-          retries: 5
-        },
-        registry: {
-          baseUrl: 'https://registry.example.com',
-          timeout: 8000
-        },
-        node: {
-          baseUrl: 'https://api.example.com',
-          retries: 2
+        baseUrl: 'https://example.com',
+        services: {
+          auth: { timeout: 10000, retries: 5 },
+          registry: { timeout: 8000 },
+          node: { retries: 2 }
         },
         certificate: {
           cert: 'cert-content',

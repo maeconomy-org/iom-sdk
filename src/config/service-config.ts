@@ -61,18 +61,36 @@ export interface SDKError extends Error {
   };
 }
 
+/** Default service paths appended to baseUrl */
+export const DEFAULT_SERVICE_PATHS = {
+  auth: '/auth',
+  registry: '/registrar',
+  node: '/node-network'
+} as const;
+
+/** Default port for mTLS certificate authentication */
+export const DEFAULT_CERT_PORT = 553;
+
+/**
+ * Optional per-service overrides (baseUrl, timeout, retries, etc.)
+ * If baseUrl is provided it replaces the derived URL entirely.
+ */
+export interface ServiceOverrides {
+  auth?: Partial<ServiceConfig>;
+  registry?: Partial<ServiceConfig>;
+  node?: Partial<ServiceConfig>;
+}
+
 /**
  * Main SDK configuration interface
  */
 export interface SDKConfig {
-  /** Auth service configuration (mTLS cert login) */
-  auth: ServiceConfig;
-  /** Registry/UUID service configuration */
-  registry: ServiceConfig;
-  /** Node service configuration */
-  node: ServiceConfig;
-  /** UP auth service configuration (email/password login) — optional */
-  up?: ServiceConfig;
+  /** Root URL for all services (e.g. https://maeconomy-dev.recheck.io) */
+  baseUrl: string;
+  /** Per-service overrides — paths, timeouts, etc. */
+  services?: ServiceOverrides;
+  /** Port used for mTLS certificate login (default: 553) */
+  certPort?: number;
   /** Client certificate for mTLS authentication (optional - browser will handle cert selection) */
   certificate?: {
     cert: string;
@@ -82,6 +100,67 @@ export interface SDKConfig {
   tokenStorage?: 'localStorage' | 'sessionStorage' | 'memory';
   /** Error handling configuration */
   errorHandling?: ErrorHandlingConfig;
+}
+
+/**
+ * Builds the cert-auth base URL by replacing the port on the auth base URL
+ */
+export function buildCertAuthBaseUrl(
+  authBaseUrl: string,
+  certPort: number = DEFAULT_CERT_PORT
+): string {
+  const url = new URL(authBaseUrl);
+  url.port = String(certPort);
+  return url.origin + url.pathname.replace(/\/$/, '');
+}
+
+/**
+ * Resolves the full ServiceConfig for each service from SDKConfig
+ */
+export function resolveServiceConfigs(config: SDKConfig): {
+  auth: ServiceConfig;
+  registry: ServiceConfig;
+  node: ServiceConfig;
+  certAuth: ServiceConfig;
+} {
+  const authBase =
+    config.services?.auth?.baseUrl ||
+    `${config.baseUrl.replace(/\/$/, '')}${DEFAULT_SERVICE_PATHS.auth}`;
+  const registryBase =
+    config.services?.registry?.baseUrl ||
+    `${config.baseUrl.replace(/\/$/, '')}${DEFAULT_SERVICE_PATHS.registry}`;
+  const nodeBase =
+    config.services?.node?.baseUrl ||
+    `${config.baseUrl.replace(/\/$/, '')}${DEFAULT_SERVICE_PATHS.node}`;
+
+  const auth: ServiceConfig = {
+    baseUrl: authBase,
+    ...config.services?.auth,
+    // ensure baseUrl isn't accidentally overwritten by spread of partial
+    ...(config.services?.auth ? { baseUrl: authBase } : {})
+  };
+  const registry: ServiceConfig = {
+    baseUrl: registryBase,
+    ...config.services?.registry,
+    ...(config.services?.registry ? { baseUrl: registryBase } : {})
+  };
+  const node: ServiceConfig = {
+    baseUrl: nodeBase,
+    ...config.services?.node,
+    ...(config.services?.node ? { baseUrl: nodeBase } : {})
+  };
+
+  const certAuthBaseUrl = buildCertAuthBaseUrl(
+    authBase,
+    config.certPort ?? DEFAULT_CERT_PORT
+  );
+  const certAuth: ServiceConfig = {
+    ...auth,
+    baseUrl: certAuthBaseUrl,
+    refreshBaseUrl: auth.baseUrl
+  };
+
+  return { auth, registry, node, certAuth };
 }
 
 /**
@@ -122,15 +201,16 @@ export function validateServiceConfig(
  * Validates the complete SDK configuration
  */
 export function validateSDKConfig(config: SDKConfig): void {
-  if (!config.auth) {
-    throw new Error('Auth service configuration is required');
+  if (!config.baseUrl) {
+    throw new Error('baseUrl is required');
   }
-  if (!config.registry) {
-    throw new Error('Registry service configuration is required');
+
+  try {
+    new URL(config.baseUrl);
+  } catch {
+    throw new Error('baseUrl must be a valid URL');
   }
-  if (!config.node) {
-    throw new Error('Node service configuration is required');
-  }
+
   // Certificate is optional - browser handles cert selection in UI environments
   if (config.certificate) {
     if (!config.certificate.cert || !config.certificate.key) {
@@ -140,12 +220,14 @@ export function validateSDKConfig(config: SDKConfig): void {
     }
   }
 
-  validateServiceConfig(config.auth, 'auth');
-  validateServiceConfig(config.registry, 'registry');
-  validateServiceConfig(config.node, 'node');
-  if (config.up) {
-    validateServiceConfig(config.up, 'up');
-  }
+  // Validate any explicit service override URLs
+  const overrides = config.services;
+  if (overrides?.auth?.baseUrl)
+    validateServiceConfig({ baseUrl: overrides.auth.baseUrl }, 'auth');
+  if (overrides?.registry?.baseUrl)
+    validateServiceConfig({ baseUrl: overrides.registry.baseUrl }, 'registry');
+  if (overrides?.node?.baseUrl)
+    validateServiceConfig({ baseUrl: overrides.node.baseUrl }, 'node');
 
   // Validate token storage option
   if (

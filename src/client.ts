@@ -1,6 +1,6 @@
 import * as https from 'https';
 import axios, { AxiosInstance } from 'axios';
-import { SDKConfig, validateSDKConfig } from './config';
+import { SDKConfig, validateSDKConfig, resolveServiceConfigs } from './config';
 import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
@@ -45,7 +45,7 @@ export class Client {
   public auth: AuthServiceClient;
   public registry: RegistryServiceClient;
   public node: NodeServiceClient;
-  public up: UpAuthServiceClient | null = null;
+  public up: UpAuthServiceClient;
 
   private readonly STORAGE_KEY = 'iom-auth-state';
   private storage: TokenStorage;
@@ -55,32 +55,35 @@ export class Client {
     validateSDKConfig(config);
     this.config = config;
 
+    const resolved = resolveServiceConfigs(config);
+
     this.storage = createTokenStorage(config.tokenStorage, this.STORAGE_KEY);
     this.loadState();
     this.initCrossTabSync();
 
     this.auth = new AuthServiceClient(
-      config.auth,
+      resolved.certAuth,
       config.errorHandling || {},
       config.certificate
     );
 
     this.registry = new RegistryServiceClient(
-      config.registry,
+      resolved.registry,
       config.errorHandling || {},
-      this.createServiceAxiosInstance(config.registry.baseUrl)
+      this.createServiceAxiosInstance(resolved.registry.baseUrl)
     );
 
     this.node = new NodeServiceClient(
-      config.node,
+      resolved.node,
       config.errorHandling || {},
-      this.createServiceAxiosInstance(config.node.baseUrl),
+      this.createServiceAxiosInstance(resolved.node.baseUrl),
       this.registry
     );
 
-    if (config.up) {
-      this.up = new UpAuthServiceClient(config.up, config.errorHandling || {});
-    }
+    this.up = new UpAuthServiceClient(
+      resolved.auth,
+      config.errorHandling || {}
+    );
 
     this.axiosInstance = this.node.getAxios();
 
@@ -343,12 +346,6 @@ export class Client {
   public async loginWithEmailPassword(
     request: EmailPasswordLoginRequest
   ): Promise<{ success: boolean; user?: AuthResponse }> {
-    if (!this.up) {
-      throw new Error(
-        'UP auth service not configured. Provide "up" in SDKConfig.'
-      );
-    }
-
     try {
       const response = await this.up.login(request);
       this.token = response.token;
@@ -369,12 +366,6 @@ export class Client {
   public async register(
     request: EmailPasswordRegisterRequest
   ): Promise<{ success: boolean; message?: string }> {
-    if (!this.up) {
-      throw new Error(
-        'UP auth service not configured. Provide "up" in SDKConfig.'
-      );
-    }
-
     try {
       const message = await this.up.register(request);
       logInfo('Registration successful');

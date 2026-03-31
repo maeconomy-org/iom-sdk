@@ -64,7 +64,7 @@ export class AuthServiceClient {
     const payload: RefreshTokenRequest = { refreshToken };
     const response =
       await this.refreshAxiosInstance.post<AuthRefreshTokenResponse>(
-        '/api/auth/refreshToken',
+        '/api/auth/jwt/refreshToken',
         payload
       );
 

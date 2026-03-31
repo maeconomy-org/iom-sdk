@@ -7,9 +7,7 @@ import { SDKConfig } from '../../src/config';
 
 // Mock configuration
 const mockConfig: SDKConfig = {
-  auth: { baseUrl: 'https://auth.example.com' },
-  registry: { baseUrl: 'https://registry.example.com' },
-  node: { baseUrl: 'https://node.example.com' },
+  baseUrl: 'https://example.com',
   certificate: {
     cert: 'mock-cert',
     key: 'mock-key'

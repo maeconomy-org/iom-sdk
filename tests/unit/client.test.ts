@@ -21,9 +21,7 @@ const localStorageMock = (() => {
 
 describe('Client', () => {
   const config: SDKConfig = {
-    auth: { baseUrl: 'https://auth.example.com' },
-    registry: { baseUrl: 'https://registry.example.com' },
-    node: { baseUrl: 'https://node.example.com' }
+    baseUrl: 'https://example.com'
   };
 
   beforeEach(() => {

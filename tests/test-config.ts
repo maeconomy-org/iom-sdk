@@ -8,20 +8,11 @@ import { SDKConfig } from '../src/config';
  * Default test configuration for SDK
  */
 export const defaultTestConfig: SDKConfig = {
-  auth: {
-    baseUrl: 'https://auth.test.com',
-    timeout: 5000,
-    retries: 2
-  },
-  registry: {
-    baseUrl: 'https://registry.test.com',
-    timeout: 5000,
-    retries: 2
-  },
-  node: {
-    baseUrl: 'https://api.test.com',
-    timeout: 10000,
-    retries: 3
+  baseUrl: 'https://test.example.com',
+  services: {
+    auth: { timeout: 5000, retries: 2 },
+    registry: { timeout: 5000, retries: 2 },
+    node: { timeout: 10000, retries: 3 }
   },
   certificate: {
     cert: 'test-certificate-content',
@@ -167,10 +158,11 @@ export class TestUtils {
   static createConfig(overrides: Partial<SDKConfig> = {}): SDKConfig {
     return {
       ...defaultTestConfig,
-      auth: { ...defaultTestConfig.auth, ...overrides.auth },
-      registry: { ...defaultTestConfig.registry, ...overrides.registry },
-      node: { ...defaultTestConfig.node, ...overrides.node },
-      certificate: overrides.certificate || defaultTestConfig.certificate,
+      ...overrides,
+      services: {
+        ...defaultTestConfig.services,
+        ...overrides.services
+      },
       errorHandling: {
         ...defaultTestConfig.errorHandling,
         ...overrides.errorHandling
