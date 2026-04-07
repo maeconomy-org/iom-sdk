@@ -2,6 +2,7 @@ import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { z } from 'zod';
 import { ServiceConfig, ErrorHandlingConfig } from '../../config';
 import { RegistryServiceClient } from '../registry/registry-client';
+import { validateStatementSearchBody } from '../../validation/query-params';
 import {
   UUID,
   UUObjectDTO,
@@ -11,9 +12,7 @@ import {
   UUFileDTO,
   UUAddressDTO,
   QueryParams,
-  StatementQueryParams,
   UUStatementsAccessFindDTO,
-  UUStatementFindDTO,
   AggregateCreateDTO,
   AggregateEntity,
   AggregateFindDTO,
@@ -176,36 +175,13 @@ export class NodeServiceClient {
     body: UUStatementsAccessFindDTO,
     options?: RequestOptions
   ): Promise<UUStatementDTO[]> {
+    const validatedBody = validateStatementSearchBody(body);
     const response = await this.axios.post<UUStatementDTO[]>(
       '/api/UUStatements/search',
-      body,
+      validatedBody ?? {},
       { signal: options?.signal }
     );
     return response.data;
-  }
-
-  /**
-   * @deprecated Use searchStatements() instead. This wraps the old query-param interface
-   * into the new POST body format for backward compatibility.
-   */
-  async getStatements(
-    params?: StatementQueryParams,
-    options?: RequestOptions
-  ): Promise<UUStatementDTO[]> {
-    const uuStatementFind: UUStatementFindDTO = {};
-    if (params?.subject) {
-      uuStatementFind.subject = params.subject;
-    }
-    if (params?.predicate) {
-      uuStatementFind.predicate = params.predicate;
-    }
-    if (params?.object) {
-      uuStatementFind.object = params.object;
-    }
-    if (params?.softDeleted !== undefined) {
-      uuStatementFind.softDeleted = params.softDeleted;
-    }
-    return this.searchStatements({ uuStatementFind }, options);
   }
 
   /**
@@ -548,10 +524,12 @@ export class NodeServiceClient {
     objectUuid: UUID,
     params?: QueryParams
   ): Promise<ApiResponse<UUPropertyDTO[]>> {
-    const statements = await this.getStatements({
-      subject: objectUuid,
-      predicate: Predicate.HAS_PROPERTY,
-      ...params
+    const statements = await this.searchStatements({
+      uuStatementFind: {
+        subject: objectUuid,
+        predicate: Predicate.HAS_PROPERTY,
+        softDeleted: params?.softDeleted,
+      },
     });
     if (!statements.length) {
       return { data: [], status: 200, statusText: 'OK' };
@@ -618,10 +596,12 @@ export class NodeServiceClient {
       const validatedPropertyUuid = uuidSchema.parse(propertyUuid);
 
       // Get value statements
-      const statements = await this.getStatements({
-        subject: validatedPropertyUuid,
-        predicate: Predicate.HAS_VALUE,
-        ...params
+      const statements = await this.searchStatements({
+        uuStatementFind: {
+          subject: validatedPropertyUuid,
+          predicate: Predicate.HAS_VALUE,
+          softDeleted: params?.softDeleted,
+        },
       });
 
       if (!statements || statements.length === 0) {

@@ -42,27 +42,12 @@ export interface AuthResponse {
   userUUID: string;
   credentials?: string;
   credentialValue?: string;
-  usernamePasswordCredentials?: {
-    username?: string;
-    credentialValue?: string;
-  };
+  // Email/password auth fields (from /api/auth/up/login)
+  username?: string;
+  identifier?: string;
+  identifierType?: string;
   createdAt: string;
   authorities?: string[];
-  certificateInfo?: {
-    certificateSha256: string;
-    subjectFields: {
-      CN: string;
-      [key: string]: string;
-    };
-    issuerFields: {
-      CN: string;
-      [key: string]: string;
-    };
-    serialNumber: string;
-    validFrom: string;
-    validTo: string;
-    subjectAlternativeNames: string[];
-  };
   enabled?: boolean;
   accountNonExpired?: boolean;
   credentialsNonExpired?: boolean;

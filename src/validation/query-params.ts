@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import {
   QueryParams,
-  StatementQueryParams,
   Predicate,
+  UUStatementsAccessFindDTO,
   AggregateFindDTO
 } from '@/types';
 import { validate } from '@/validation/validate';
@@ -34,36 +34,67 @@ export const validateQueryParams = (
 };
 
 /**
- * Validates and cleans statement query parameters
- * Removes undefined values to avoid sending them in requests
+ * Validates and cleans statement search body parameters
+ * Used by POST /api/UUStatements/search
  *
- * @param params - Statement query parameters to validate
- * @returns Clean validated parameters or undefined if no params
+ * @param body - Statement search body to validate
+ * @returns Clean validated body or undefined if no params
  */
-export const validateStatementQueryParams = (
-  params?: StatementQueryParams
+export const validateStatementSearchBody = (
+  body?: UUStatementsAccessFindDTO
 ): Record<string, any> | undefined => {
-  if (!params) {
+  if (!body) {
     return undefined;
   }
 
-  const validatedParams = {
-    subject: params.subject
-      ? validate(z.string().uuid(), params.subject)
-      : undefined,
-    predicate: params.predicate
-      ? validate(z.nativeEnum(Predicate), params.predicate)
-      : undefined,
-    object: params.object
-      ? validate(z.string().uuid(), params.object)
-      : undefined,
-    softDeleted: validate(z.boolean().optional(), params.softDeleted)
-  };
+  const validated: Record<string, any> = {};
 
-  // Remove undefined values from params
-  return Object.fromEntries(
-    Object.entries(validatedParams).filter(([_, v]) => v !== undefined)
-  );
+  if (body.uuStatementFind) {
+    const find: Record<string, any> = {
+      subject: body.uuStatementFind.subject
+        ? validate(z.string().uuid(), body.uuStatementFind.subject)
+        : undefined,
+      predicate: body.uuStatementFind.predicate
+        ? validate(z.nativeEnum(Predicate), body.uuStatementFind.predicate)
+        : undefined,
+      object: body.uuStatementFind.object
+        ? validate(z.string().uuid(), body.uuStatementFind.object)
+        : undefined,
+      softDeleted: validate(
+        z.boolean().optional(),
+        body.uuStatementFind.softDeleted
+      )
+    };
+    validated.uuStatementFind = Object.fromEntries(
+      Object.entries(find).filter(([_, v]) => v !== undefined)
+    );
+  }
+
+  if (body.accessFind) {
+    validated.accessFind = {
+      readDefaultGroup: validate(
+        z.boolean().optional(),
+        body.accessFind.readDefaultGroup
+      ),
+      readOwnGroups: validate(
+        z.boolean().optional(),
+        body.accessFind.readOwnGroups
+      ),
+      readPublicGroups: validate(
+        z.boolean().optional(),
+        body.accessFind.readPublicGroups
+      ),
+      readUserSharedGroups: validate(
+        z.boolean().optional(),
+        body.accessFind.readUserSharedGroups
+      ),
+      groupUUIDList: body.accessFind.groupUUIDList
+        ? validate(z.array(z.string()), body.accessFind.groupUUIDList)
+        : undefined
+    };
+  }
+
+  return Object.keys(validated).length > 0 ? validated : undefined;
 };
 
 /**

@@ -209,7 +209,8 @@ export interface AggregateUUPropertyValueCreateDTO {
 
 export interface AuditUser {
   userUUID?: string;
-  credentials?: string;
+  userAuthIdentifier?: string;
+  userAuthIdentifierType?: string;
 }
 
 // Additional aggregate types matching swagger

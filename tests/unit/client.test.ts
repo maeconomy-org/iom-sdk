@@ -217,6 +217,64 @@ describe('Client', () => {
     });
   });
 
+  describe('auth response with email/password fields', () => {
+    it('should store and retrieve user with username and identifier fields', () => {
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+      const tokenPayload = JSON.stringify({ exp, userUUID: 'user-456' });
+      const validToken = `header.${btoa(tokenPayload)}.signature`;
+
+      const mockState = {
+        token: validToken,
+        refreshToken: 'refresh-token-456',
+        user: {
+          userUUID: '4885b7fe-0a19-4151-84a6-1c3c1944a409',
+          createdAt: '2026-03-31T13:32:47.308Z',
+          username: 'antonio@iliev.com',
+          identifier: 'antonio@iliev.com',
+          identifierType: 'UserAuthUP'
+        }
+      };
+
+      localStorageMock.setItem('iom-auth-state', JSON.stringify(mockState));
+
+      const client = createClient(config);
+      const user = client.getUser();
+      expect(user).toBeDefined();
+      expect(user?.userUUID).toBe('4885b7fe-0a19-4151-84a6-1c3c1944a409');
+      expect(user?.username).toBe('antonio@iliev.com');
+      expect(user?.identifier).toBe('antonio@iliev.com');
+      expect(user?.identifierType).toBe('UserAuthUP');
+    });
+
+    it('should store and retrieve user with certificate auth fields', () => {
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+      const tokenPayload = JSON.stringify({ exp, userUUID: 'user-789' });
+      const validToken = `header.${btoa(tokenPayload)}.signature`;
+
+      const mockState = {
+        token: validToken,
+        refreshToken: 'refresh-token-789',
+        user: {
+          userUUID: 'cert-user-uuid',
+          createdAt: '2026-01-15T10:00:00.000Z',
+          credentials: 'CN=Test User',
+          credentialValue: 'Test User'
+        }
+      };
+
+      localStorageMock.setItem('iom-auth-state', JSON.stringify(mockState));
+
+      const client = createClient(config);
+      const user = client.getUser();
+      expect(user).toBeDefined();
+      expect(user?.userUUID).toBe('cert-user-uuid');
+      expect(user?.credentials).toBe('CN=Test User');
+      expect(user?.credentialValue).toBe('Test User');
+      expect(user?.username).toBeUndefined();
+      expect(user?.identifierType).toBeUndefined();
+    });
+  });
+
   describe('getValidToken edge cases', () => {
     it('should return null when no token and no refresh token', async () => {
       const client = createClient(config);

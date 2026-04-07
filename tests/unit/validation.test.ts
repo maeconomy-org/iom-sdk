@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { validateSDKConfig, SDKConfig } from '../../src/config';
+import { validateStatementSearchBody } from '../../src/validation/query-params';
 
 describe('SDK Validation Tests', () => {
   describe('UUID Validation', () => {
@@ -166,29 +167,65 @@ describe('SDK Validation Tests', () => {
       ).toThrow();
     });
 
-    it('should validate statement query parameters', () => {
-      const statementQuerySchema = z.object({
-        subject: z.string().uuid().optional(),
-        predicate: z.string().optional(),
-        object: z.string().uuid().optional(),
-        softDeleted: z.boolean().optional()
-      });
+    it('should validate statement search body parameters', () => {
+      // Returns undefined for empty input
+      expect(validateStatementSearchBody(undefined)).toBeUndefined();
+      expect(validateStatementSearchBody({})).toBeUndefined();
 
-      // Valid statement queries
-      expect(() =>
-        statementQuerySchema.parse({
+      // Valid statement search body with uuStatementFind
+      const validResult = validateStatementSearchBody({
+        uuStatementFind: {
           subject: '123e4567-e89b-12d3-a456-426614174000',
-          predicate: 'HAS_PROPERTY'
-        })
-      ).not.toThrow();
+          predicate: 'HAS_PROPERTY' as any
+        }
+      });
+      expect(validResult).toBeDefined();
+      expect(validResult!.uuStatementFind.subject).toBe(
+        '123e4567-e89b-12d3-a456-426614174000'
+      );
+      expect(validResult!.uuStatementFind.predicate).toBe('HAS_PROPERTY');
 
-      // Invalid statement queries
+      // Valid with accessFind
+      const withAccess = validateStatementSearchBody({
+        uuStatementFind: {
+          subject: '123e4567-e89b-12d3-a456-426614174000'
+        },
+        accessFind: {
+          readDefaultGroup: true,
+          readOwnGroups: false,
+          groupUUIDList: ['f47ac10b-58cc-4372-a567-0e02b2c3d479']
+        }
+      });
+      expect(withAccess!.accessFind.readDefaultGroup).toBe(true);
+      expect(withAccess!.accessFind.groupUUIDList).toHaveLength(1);
+
+      // Invalid - bad UUID in subject
       expect(() =>
-        statementQuerySchema.parse({
-          subject: 'invalid-uuid',
-          predicate: 'HAS_PROPERTY'
+        validateStatementSearchBody({
+          uuStatementFind: {
+            subject: 'invalid-uuid',
+            predicate: 'HAS_PROPERTY' as any
+          }
         })
       ).toThrow();
+
+      // Invalid - bad predicate enum
+      expect(() =>
+        validateStatementSearchBody({
+          uuStatementFind: {
+            predicate: 'INVALID_PREDICATE' as any
+          }
+        })
+      ).toThrow();
+
+      // Strips undefined values from uuStatementFind
+      const partial = validateStatementSearchBody({
+        uuStatementFind: {
+          subject: '123e4567-e89b-12d3-a456-426614174000'
+        }
+      });
+      expect(partial!.uuStatementFind).not.toHaveProperty('predicate');
+      expect(partial!.uuStatementFind).not.toHaveProperty('object');
     });
   });
 

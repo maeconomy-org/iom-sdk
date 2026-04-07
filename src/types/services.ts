@@ -74,9 +74,6 @@ export interface UUStatementsAccessFindDTO {
   accessFind?: AccessFindDTO;
 }
 
-/** @deprecated Use UUStatementsAccessFindDTO with searchStatements() instead */
-export interface StatementQueryParams extends UUStatementFindDTO {}
-
 // UUStatementsPropertyValue Data Transfer Object
 export interface UUStatementsPropertyValue {
   value?: string;
