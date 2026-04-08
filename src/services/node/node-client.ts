@@ -528,8 +528,8 @@ export class NodeServiceClient {
       uuStatementFind: {
         subject: objectUuid,
         predicate: Predicate.HAS_PROPERTY,
-        softDeleted: params?.softDeleted,
-      },
+        softDeleted: params?.softDeleted
+      }
     });
     if (!statements.length) {
       return { data: [], status: 200, statusText: 'OK' };
@@ -600,8 +600,8 @@ export class NodeServiceClient {
         uuStatementFind: {
           subject: validatedPropertyUuid,
           predicate: Predicate.HAS_VALUE,
-          softDeleted: params?.softDeleted,
-        },
+          softDeleted: params?.softDeleted
+        }
       });
 
       if (!statements || statements.length === 0) {

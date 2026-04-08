@@ -65,9 +65,7 @@ describe('SDK Validation Tests', () => {
 
     it('should reject configuration with missing required fields', () => {
       // Missing baseUrl
-      expect(() =>
-        validateSDKConfig({} as any)
-      ).toThrow();
+      expect(() => validateSDKConfig({} as any)).toThrow();
     });
 
     it('should reject configuration with invalid URLs', () => {
