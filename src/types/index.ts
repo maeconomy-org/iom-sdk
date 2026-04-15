@@ -17,3 +17,6 @@ export * from './aggregates';
 
 // Group types
 export * from './groups';
+
+// Math formula types
+export * from './math-formulas';

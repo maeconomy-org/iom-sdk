@@ -22,7 +22,11 @@ import {
   RequestOptions,
   GroupCreateDTO,
   GroupAddRecordsDTO,
-  GroupRecord
+  GroupRecord,
+  UUMathFormulaDTO,
+  UUMathFormulaCalcDTO,
+  UUMathFormulaFindDTO,
+  UUMathFormulaCalcFindDTO
 } from '../../types';
 
 export class NodeServiceClient {
@@ -713,6 +717,96 @@ export class NodeServiceClient {
     records: GroupAddRecordsDTO
   ): Promise<void> {
     await this.axios.post(`/api/access/groups/${groupUUID}/records`, records);
+  }
+
+  // ============================================================================
+  // MATH FORMULA OPERATIONS
+  // ============================================================================
+
+  /**
+   * Create or update a math formula
+   * POST /api/UUMathFormula
+   */
+  async createOrUpdateMathFormula(
+    formula: UUMathFormulaDTO
+  ): Promise<UUMathFormulaDTO> {
+    const response = await this.axios.post<UUMathFormulaDTO>(
+      '/api/UUMathFormula',
+      formula
+    );
+    return response.data;
+  }
+
+  /**
+   * Search math formulas
+   * POST /api/UUMathFormula/search
+   */
+  async searchMathFormulas(
+    body: UUMathFormulaFindDTO,
+    options?: RequestOptions
+  ): Promise<UUMathFormulaDTO[]> {
+    const response = await this.axios.post<UUMathFormulaDTO[]>(
+      '/api/UUMathFormula/search',
+      body ?? {},
+      { signal: options?.signal }
+    );
+    return response.data;
+  }
+
+  /**
+   * Soft delete a math formula
+   * DELETE /api/UUMathFormula/{uuid}
+   */
+  async softDeleteMathFormula(uuid: UUID): Promise<{ success: boolean }> {
+    const response = await this.axios.delete<{ success: boolean }>(
+      `/api/UUMathFormula/${uuid}`
+    );
+    return response.data;
+  }
+
+  // ============================================================================
+  // MATH FORMULA CALCULATION OPERATIONS
+  // ============================================================================
+
+  /**
+   * Create or update a math formula calculation
+   * POST /api/UUMathFormulaCalc
+   */
+  async createOrUpdateMathFormulaCalc(
+    calc: UUMathFormulaCalcDTO
+  ): Promise<UUMathFormulaCalcDTO> {
+    const response = await this.axios.post<UUMathFormulaCalcDTO>(
+      '/api/UUMathFormulaCalc',
+      calc
+    );
+    return response.data;
+  }
+
+  /**
+   * Search math formula calculations
+   * POST /api/UUMathFormulaCalc/search
+   */
+  async searchMathFormulaCalcs(
+    body: UUMathFormulaCalcFindDTO,
+    options?: RequestOptions
+  ): Promise<UUMathFormulaCalcDTO[]> {
+    const response = await this.axios.post<UUMathFormulaCalcDTO[]>(
+      '/api/UUMathFormulaCalc/search',
+      body ?? {},
+      { signal: options?.signal }
+    );
+    return response.data;
+  }
+
+  /**
+   * Soft delete a math formula calculation
+   * DELETE /api/UUMathFormulaCalc/{uuid}
+   */
+  async softDeleteMathFormulaCalc(uuid: UUID): Promise<{ success: boolean }> {
+    const response = await this.axios.delete<{ success: boolean }>(
+      `/api/UUMathFormulaCalc/${uuid}`
+    );
+    return response.data;
   }
 
   // ============================================================================
