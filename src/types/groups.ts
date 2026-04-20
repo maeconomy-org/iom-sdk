@@ -37,6 +37,42 @@ export interface GroupAddRecordsDTO {
   recordUUIDs: UUID[];
 }
 
+// Pagination parameters for listing groups
+export interface GroupListParams {
+  page?: number;
+  size?: number;
+}
+
+// Paginated response for groups (matches Spring PageImpl)
+export interface PageImplGroupFullDTO {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  content: GroupCreateDTO[];
+  number: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+  pageable: {
+    paged: boolean;
+    pageNumber: number;
+    pageSize: number;
+    offset: number;
+    sort: {
+      sorted: boolean;
+      empty: boolean;
+      unsorted: boolean;
+    };
+    unpaged: boolean;
+  };
+  sort: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
+  };
+}
+
 // Group record entity (with audit fields)
 export interface GroupRecord {
   createdAt?: string;

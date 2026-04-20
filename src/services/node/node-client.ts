@@ -22,7 +22,9 @@ import {
   RequestOptions,
   GroupCreateDTO,
   GroupAddRecordsDTO,
+  GroupListParams,
   GroupRecord,
+  PageImplGroupFullDTO,
   UUMathFormulaDTO,
   UUMathFormulaCalcDTO,
   UUMathFormulaFindDTO,
@@ -653,14 +655,21 @@ export class NodeServiceClient {
   // ============================================================================
 
   /**
-   * List all groups
+   * List groups with pagination
    * GET /api/access/groups
    */
-  async listGroups(options?: RequestOptions): Promise<GroupCreateDTO[]> {
-    const response = await this.axios.get<GroupCreateDTO[]>(
+  async listGroups(
+    params?: GroupListParams,
+    options?: RequestOptions
+  ): Promise<PageImplGroupFullDTO> {
+    const response = await this.axios.get<PageImplGroupFullDTO>(
       '/api/access/groups',
       {
-        signal: options?.signal
+        params: {
+          page: params?.page ?? 0,
+          size: params?.size ?? 20,
+        },
+        signal: options?.signal,
       }
     );
     return response.data;
