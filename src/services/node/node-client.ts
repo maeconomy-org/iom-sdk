@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ServiceConfig, ErrorHandlingConfig } from '../../config';
 import { RegistryServiceClient } from '../registry/registry-client';
 import { validateStatementSearchBody } from '../../validation/query-params';
+import { blobToBase64 } from '../../utils/base64';
 import {
   UUID,
   UUObjectDTO,
@@ -10,6 +11,7 @@ import {
   UUPropertyValueDTO,
   UUStatementDTO,
   UUFileDTO,
+  UUFileFindRequestDTO,
   UUAddressDTO,
   QueryParams,
   UUStatementsAccessFindDTO,
@@ -174,7 +176,7 @@ export class NodeServiceClient {
   // ============================================================================
 
   /**
-   * Search statements via POST /api/UUStatements/search
+   * Search statements via POST /api/UUStatements/find
    * When subject or object is provided in uuStatementFind, accessFind is skipped server-side
    */
   async searchStatements(
@@ -183,7 +185,7 @@ export class NodeServiceClient {
   ): Promise<UUStatementDTO[]> {
     const validatedBody = validateStatementSearchBody(body);
     const response = await this.axios.post<UUStatementDTO[]>(
-      '/api/UUStatements/search',
+      '/api/UUStatements/find',
       validatedBody ?? {},
       { signal: options?.signal }
     );
@@ -243,28 +245,9 @@ export class NodeServiceClient {
   }
 
   /**
-   * Upload a file's binary content via multipart/form-data
-   * Swagger: POST /api/UUFile/upload?uuidFile={uuidFile}&uuidToAttach={uuidToAttach}
-   */
-  async uploadFileBinary(
-    uuidFile: UUID,
-    uuidToAttach: UUID,
-    file: File | Blob,
-    fieldName: string = 'file'
-  ): Promise<UUFileDTO> {
-    const formData = new FormData();
-    formData.append(fieldName, file);
-
-    // Build URL with query parameters - this is the correct endpoint for binary upload
-    const url = `/api/UUFile/upload?uuidFile=${uuidFile}&uuidToAttach=${uuidToAttach}`;
-
-    // Don't set Content-Type manually - let axios/browser auto-detect it with proper boundary
-    const response = await this.axios.post<UUFileDTO>(url, formData);
-    return response.data;
-  }
-
-  /**
-   * Create or update a UUFile record (metadata only, no binary)
+   * Create or update a UUFile record.
+   * POST /api/UUFile — send binary bytes via `fileContentBase64`. The server
+   * determines `size` and ignores `contentType` / `fileReference` logic.
    */
   async createOrUpdateFile(file: UUFileDTO): Promise<UUFileDTO> {
     const response = await this.axios.post<UUFileDTO>('/api/UUFile', file);
@@ -278,18 +261,40 @@ export class NodeServiceClient {
     return response.data;
   }
 
-  async downloadFile(
-    uuid: UUID,
+  /**
+   * Find UUFile records via POST /api/UUFile/find.
+   * Set `includeFileContentBase64=true` + `nodeFind.uuid` with
+   * `softDeleted=false` to receive the file bytes in `fileContentBase64`.
+   * Otherwise content is always excluded from the response.
+   */
+  async findFiles(
+    body: UUFileFindRequestDTO,
     options?: RequestOptions
-  ): Promise<ArrayBuffer> {
-    const response = await this.axios.get<ArrayBuffer>(
-      `/api/UUFile/${uuid}/download`,
-      {
-        responseType: 'arraybuffer',
-        signal: options?.signal
-      }
+  ): Promise<UUFileDTO[]> {
+    const response = await this.axios.post<UUFileDTO[]>(
+      '/api/UUFile/find',
+      body ?? {},
+      { signal: options?.signal }
     );
     return response.data;
+  }
+
+  /**
+   * Fetch a single file's base64 content by UUID.
+   * Returns null if the file is not found or has no content.
+   */
+  async getFileContent(
+    uuid: UUID,
+    options?: RequestOptions
+  ): Promise<string | null> {
+    const files = await this.findFiles(
+      {
+        nodeFind: { uuid, softDeleted: false },
+        includeFileContentBase64: true
+      },
+      options
+    );
+    return files[0]?.fileContentBase64 ?? null;
   }
 
   async softDeleteFile(uuid: UUID): Promise<{ success: boolean }> {
@@ -348,7 +353,7 @@ export class NodeServiceClient {
     options?: RequestOptions
   ): Promise<PageAggregateEntity> {
     const response = await this.axios.post<PageAggregateEntity>(
-      '/api/Aggregate/search',
+      '/api/Aggregate/find',
       searchParams,
       { signal: options?.signal }
     );
@@ -440,10 +445,10 @@ export class NodeServiceClient {
   }
 
   /**
-   * Upload a file's binary content directly
+   * Upload a file's binary content directly.
    * Complete flow:
    * 1) Create UUID for the file
-   * 2) POST binary to /api/UUFile/upload with uuidFile and uuidToAttach
+   * 2) Encode file bytes as base64 and POST to /api/UUFile
    * 3) Create statement to link file to parent object
    */
   async uploadFileDirect(input: {
@@ -456,18 +461,24 @@ export class NodeServiceClient {
     }
 
     try {
-      // 1. Create UUID for the file
       const uuidResponse = await this.registryClient.createUUID();
       const fileUuid = uuidResponse.uuid;
 
-      // 2. Upload the binary content to /api/UUFile/upload
-      const uploadedFile = await this.uploadFileBinary(
-        fileUuid,
-        input.uuidToAttach,
-        input.file
-      );
+      const fileContentBase64 = await blobToBase64(input.file);
+      const fileName =
+        typeof File !== 'undefined' && input.file instanceof File
+          ? input.file.name
+          : undefined;
+      const contentType = (input.file as any).type || undefined;
 
-      // 3. Create statement to link file to parent object
+      const uploadedFile = await this.createOrUpdateFile({
+        uuid: fileUuid,
+        fileName,
+        contentType,
+        label: input.label,
+        fileContentBase64
+      });
+
       await this.createStatement({
         subject: input.uuidToAttach,
         predicate: Predicate.HAS_FILE,
@@ -748,14 +759,14 @@ export class NodeServiceClient {
 
   /**
    * Search math formulas
-   * POST /api/UUMathFormula/search
+   * POST /api/UUMathFormula/find
    */
   async searchMathFormulas(
     body: UUMathFormulaFindDTO,
     options?: RequestOptions
   ): Promise<UUMathFormulaDTO[]> {
     const response = await this.axios.post<UUMathFormulaDTO[]>(
-      '/api/UUMathFormula/search',
+      '/api/UUMathFormula/find',
       body ?? {},
       { signal: options?.signal }
     );
@@ -793,14 +804,14 @@ export class NodeServiceClient {
 
   /**
    * Search math formula calculations
-   * POST /api/UUMathFormulaCalc/search
+   * POST /api/UUMathFormulaCalc/find
    */
   async searchMathFormulaCalcs(
     body: UUMathFormulaCalcFindDTO,
     options?: RequestOptions
   ): Promise<UUMathFormulaCalcDTO[]> {
     const response = await this.axios.post<UUMathFormulaCalcDTO[]>(
-      '/api/UUMathFormulaCalc/search',
+      '/api/UUMathFormulaCalc/find',
       body ?? {},
       { signal: options?.signal }
     );

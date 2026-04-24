@@ -20,3 +20,6 @@ export * from './groups';
 
 // Math formula types
 export * from './math-formulas';
+
+// User service types
+export * from './user';

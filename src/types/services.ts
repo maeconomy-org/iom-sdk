@@ -69,7 +69,7 @@ export interface UUStatementFindDTO {
   softDeleted?: boolean;
 }
 
-// Search body for POST /api/UUStatements/search
+// Search body for POST /api/UUStatements/find
 // When subject or object is provided, accessFind is skipped server-side
 export interface UUStatementsAccessFindDTO {
   uuStatementFind?: UUStatementFindDTO;
@@ -136,10 +136,32 @@ export interface UUFileDTO {
   uuid: UUID;
   groupUUID?: UUID;
   fileName?: string;
+  // External URL reference (with optional label) — kept for external file links.
+  // No server-side logic on uploads; use `fileContentBase64` to send bytes.
   fileReference?: string;
   label?: string;
+  // Preserved for compatibility; the server determines the actual content type.
   contentType?: string;
+  // Server-determined on uploads; read-only for clients.
   size?: number;
+  // Base64-encoded file bytes. Set on upload (POST /api/UUFile) to send content.
+  // Returned from POST /api/UUFile/find only when includeFileContentBase64=true
+  // and nodeFind.uuid is set with softDeleted=false. Never returned inside
+  // Aggregate search results.
+  fileContentBase64?: string;
+}
+
+// NodeFindDTO — used by /find endpoints to filter by uuid/softDeleted
+export interface NodeFindDTO {
+  uuid?: UUID;
+  softDeleted?: boolean;
+}
+
+// Request body for POST /api/UUFile/find
+export interface UUFileFindRequestDTO {
+  nodeFind?: NodeFindDTO;
+  accessFind?: AccessFindDTO;
+  includeFileContentBase64?: boolean;
 }
 
 // UUAddress Data Transfer Object

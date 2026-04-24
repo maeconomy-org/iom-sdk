@@ -44,7 +44,7 @@ export class AuthServiceClient {
 
   async login(): Promise<JWTAuthResponse> {
     const response = await this.axiosInstance.get<AuthLoginResponse>(
-      '/api/auth/cert/login'
+      '/api/UserAuthX509Certificate/login'
     );
     const { accessToken, refreshToken, user } = response.data;
 
@@ -64,7 +64,7 @@ export class AuthServiceClient {
     const payload: RefreshTokenRequest = { refreshToken };
     const response =
       await this.refreshAxiosInstance.post<AuthRefreshTokenResponse>(
-        '/api/auth/jwt/refreshToken',
+        '/api/UserAuthJwt/refreshToken',
         payload
       );
 

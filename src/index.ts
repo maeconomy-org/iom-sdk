@@ -11,6 +11,7 @@ export { AuthServiceClient } from './services/auth';
 export { RegistryServiceClient } from './services/registry';
 export { NodeServiceClient } from './services/node';
 export { UpAuthServiceClient } from './services/up';
+export { UserServiceClient } from './services/user';
 
 // Core utilities
 export { configureLogger } from './core/logger';

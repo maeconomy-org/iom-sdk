@@ -14,3 +14,6 @@ export * from './node';
 
 // UP auth service (email/password)
 export * from './up';
+
+// User service (profile + lookup)
+export * from './user';

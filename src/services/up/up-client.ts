@@ -21,13 +21,13 @@ export class UpAuthServiceClient {
 
   /**
    * Register a new user with email and password
-   * POST /api/auth/up/register { username, password }
+   * POST /api/UserAuthUP/register { username, password }
    */
   async register(request: EmailPasswordRegisterRequest): Promise<string> {
     validateEmailPassword(request.email, request.password);
 
     const response = await this.axiosInstance.post<string>(
-      '/api/auth/up/register',
+      '/api/UserAuthUP/register',
       {
         username: request.email,
         password: request.password
@@ -38,13 +38,13 @@ export class UpAuthServiceClient {
 
   /**
    * Login with email and password
-   * POST /api/auth/up/login { username, password }
+   * POST /api/UserAuthUP/login { username, password }
    */
   async login(request: EmailPasswordLoginRequest): Promise<JWTAuthResponse> {
     validateEmailPassword(request.email, request.password);
 
     const response = await this.axiosInstance.post<AuthLoginResponse>(
-      '/api/auth/up/login',
+      '/api/UserAuthUP/login',
       {
         username: request.email,
         password: request.password

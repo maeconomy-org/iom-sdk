@@ -65,7 +65,8 @@ export interface SDKError extends Error {
 export const DEFAULT_SERVICE_PATHS = {
   auth: '/auth',
   registry: '/registrar',
-  node: '/node-network'
+  node: '/node-network',
+  user: '/user'
 } as const;
 
 /** Default port for mTLS certificate authentication */
@@ -79,6 +80,7 @@ export interface ServiceOverrides {
   auth?: Partial<ServiceConfig>;
   registry?: Partial<ServiceConfig>;
   node?: Partial<ServiceConfig>;
+  user?: Partial<ServiceConfig>;
 }
 
 /**
@@ -121,6 +123,7 @@ export function resolveServiceConfigs(config: SDKConfig): {
   auth: ServiceConfig;
   registry: ServiceConfig;
   node: ServiceConfig;
+  user: ServiceConfig;
   certAuth: ServiceConfig;
 } {
   const authBase =
@@ -132,6 +135,9 @@ export function resolveServiceConfigs(config: SDKConfig): {
   const nodeBase =
     config.services?.node?.baseUrl ||
     `${config.baseUrl.replace(/\/$/, '')}${DEFAULT_SERVICE_PATHS.node}`;
+  const userBase =
+    config.services?.user?.baseUrl ||
+    `${config.baseUrl.replace(/\/$/, '')}${DEFAULT_SERVICE_PATHS.user}`;
 
   const auth: ServiceConfig = {
     baseUrl: authBase,
@@ -149,6 +155,11 @@ export function resolveServiceConfigs(config: SDKConfig): {
     ...config.services?.node,
     ...(config.services?.node ? { baseUrl: nodeBase } : {})
   };
+  const user: ServiceConfig = {
+    baseUrl: userBase,
+    ...config.services?.user,
+    ...(config.services?.user ? { baseUrl: userBase } : {})
+  };
 
   const certAuthBaseUrl = buildCertAuthBaseUrl(
     authBase,
@@ -160,7 +171,7 @@ export function resolveServiceConfigs(config: SDKConfig): {
     refreshBaseUrl: auth.baseUrl
   };
 
-  return { auth, registry, node, certAuth };
+  return { auth, registry, node, user, certAuth };
 }
 
 /**
@@ -228,6 +239,8 @@ export function validateSDKConfig(config: SDKConfig): void {
     validateServiceConfig({ baseUrl: overrides.registry.baseUrl }, 'registry');
   if (overrides?.node?.baseUrl)
     validateServiceConfig({ baseUrl: overrides.node.baseUrl }, 'node');
+  if (overrides?.user?.baseUrl)
+    validateServiceConfig({ baseUrl: overrides.user.baseUrl }, 'user');
 
   // Validate token storage option
   if (

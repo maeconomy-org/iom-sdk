@@ -5,6 +5,7 @@ import { AuthServiceClient } from './services/auth/auth-client';
 import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
 import { UpAuthServiceClient } from './services/up/up-client';
+import { UserServiceClient } from './services/user/user-client';
 import {
   AuthResponse,
   EmailPasswordLoginRequest,
@@ -32,7 +33,7 @@ export class Client {
 
   private token: string | null = null;
   private refreshToken: string | null = null;
-  private user: AuthResponse | null = null;
+  private authUser: AuthResponse | null = null;
 
   private listeners: Set<AuthChangeListener> = new Set();
 
@@ -46,6 +47,7 @@ export class Client {
   public registry: RegistryServiceClient;
   public node: NodeServiceClient;
   public up: UpAuthServiceClient;
+  public user: UserServiceClient;
 
   private readonly STORAGE_KEY = 'iom-auth-state';
   private storage: TokenStorage;
@@ -85,6 +87,12 @@ export class Client {
       config.errorHandling || {}
     );
 
+    this.user = new UserServiceClient(
+      resolved.user,
+      config.errorHandling || {},
+      this.createServiceAxiosInstance(resolved.user.baseUrl)
+    );
+
     this.axiosInstance = this.node.getAxios();
 
     // Startup lifecycle (single-flight safe)
@@ -100,7 +108,7 @@ export class Client {
   }
 
   public getUser(): AuthResponse | null {
-    return this.user;
+    return this.authUser;
   }
 
   public getToken(): string | null {
@@ -330,10 +338,10 @@ export class Client {
       const response = await this.auth.login();
       this.token = response.token;
       this.refreshToken = response.refreshToken;
-      this.user = response.user || null;
+      this.authUser = response.user || null;
       this.saveState();
       logInfo('Login successful');
-      return { success: true, user: this.user || undefined };
+      return { success: true, user: this.authUser || undefined };
     } catch (error) {
       logError('Login failed', error);
       return { success: false };
@@ -350,10 +358,10 @@ export class Client {
       const response = await this.up.login(request);
       this.token = response.token;
       this.refreshToken = response.refreshToken;
-      this.user = response.user || null;
+      this.authUser = response.user || null;
       this.saveState();
       logInfo('Email/password login successful');
-      return { success: true, user: this.user || undefined };
+      return { success: true, user: this.authUser || undefined };
     } catch (error) {
       logError('Email/password login failed', error);
       return { success: false };
@@ -380,7 +388,7 @@ export class Client {
     logInfo('Logout triggered');
     this.token = null;
     this.refreshToken = null;
-    this.user = null;
+    this.authUser = null;
     this.refreshPromise = null;
     this.isRefreshing = false;
     this.saveState();
@@ -395,14 +403,14 @@ export class Client {
     if (!state) return;
     this.token = state.token;
     this.refreshToken = state.refreshToken;
-    this.user = state.user;
+    this.authUser = state.user;
   }
 
   private saveState(): void {
     const state: AuthState = {
       token: this.token,
       refreshToken: this.refreshToken,
-      user: this.user
+      user: this.authUser
     };
     this.storage.set(state);
     this.notifyListeners();
@@ -427,7 +435,7 @@ export class Client {
           // Other tab logged out
           this.token = null;
           this.refreshToken = null;
-          this.user = null;
+          this.authUser = null;
           this.refreshPromise = null;
           this.isRefreshing = false;
           this.notifyListeners();
@@ -435,7 +443,7 @@ export class Client {
           // Other tab updated tokens (e.g. after refresh)
           this.token = externalState.token;
           this.refreshToken = externalState.refreshToken;
-          this.user = externalState.user;
+          this.authUser = externalState.user;
           this.notifyListeners();
         }
       }
@@ -454,7 +462,7 @@ export class Client {
   private notifyListeners(): void {
     const state = {
       isAuthenticated: this.isAuthenticated(),
-      user: this.user,
+      user: this.authUser,
       isRefreshing: this.isRefreshing
     };
     this.listeners.forEach(l => l(state));
@@ -464,7 +472,7 @@ export class Client {
     this.listeners.add(listener);
     listener({
       isAuthenticated: this.isAuthenticated(),
-      user: this.user,
+      user: this.authUser,
       isRefreshing: this.isRefreshing
     });
     return () => this.listeners.delete(listener);

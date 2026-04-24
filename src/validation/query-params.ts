@@ -35,7 +35,7 @@ export const validateQueryParams = (
 
 /**
  * Validates and cleans statement search body parameters
- * Used by POST /api/UUStatements/search
+ * Used by POST /api/UUStatements/find
  *
  * @param body - Statement search body to validate
  * @returns Clean validated body or undefined if no params

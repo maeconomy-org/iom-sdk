@@ -6,7 +6,7 @@ import { UUID, AccessFindDTO } from './services';
 import { UUMathFormulaCalcArg, UUMathFormulaCalcResult } from './math-formulas';
 
 /**
- * Aggregate search parameters for the POST /api/Aggregate/search endpoint
+ * Aggregate search parameters for the POST /api/Aggregate/find endpoint
  * Access control is now nested under accessFind (same AccessFindDTO as statements)
  */
 export interface AggregateFindDTO {
