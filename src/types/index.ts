@@ -23,3 +23,6 @@ export * from './math-formulas';
 
 // User service types
 export * from './user';
+
+// File storage service types
+export * from './file-storage';

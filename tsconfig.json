@@ -8,20 +8,19 @@
     "sourceMap": true,
     "outDir": "dist",
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "jsx": "react",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/types": ["src/types"],
-      "@/core": ["src/core"],
-      "@/services": ["src/services"],
-      "@/facade": ["src/facade"],
-      "@/validation": ["src/validation"]
+      "@/*": ["./src/*"],
+      "@/types": ["./src/types"],
+      "@/core": ["./src/core"],
+      "@/services": ["./src/services"],
+      "@/facade": ["./src/facade"],
+      "@/validation": ["./src/validation"]
     }
   },
   "include": ["src", "tests"],

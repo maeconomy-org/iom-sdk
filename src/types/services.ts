@@ -131,24 +131,28 @@ export interface UUObjectDTO {
   isTemplate?: boolean;
 }
 
-// UUFile Data Transfer Object
+// UUFile Data Transfer Object.
+//
+// Bytes-in-Mongo (`fileContentBase64`) is removed: bytes live in the
+// FileStorage service. On upload the flow is:
+//   1. `client.fileStorage.uploadFile(...)` → returns a `fileReference`.
+//   2. `client.node.createOrUpdateFile({ uuid, fileReference, fileName,
+//      contentType, size, ... })` registers this record against the
+//      object/property graph.
+//
+// `fileReference` may also be an external URL (allow-listed by the UI) for
+// pure-link attachments.
 export interface UUFileDTO {
   uuid: UUID;
   groupUUID?: UUID;
   fileName?: string;
-  // External URL reference (with optional label) — kept for external file links.
-  // No server-side logic on uploads; use `fileContentBase64` to send bytes.
+  // FileStorage reference produced by uploadFile, OR an external URL.
   fileReference?: string;
   label?: string;
-  // Preserved for compatibility; the server determines the actual content type.
+  // Server determines on FileStorage upload; pass-through for external refs.
   contentType?: string;
-  // Server-determined on uploads; read-only for clients.
+  // Server determines on FileStorage upload; pass-through for external refs.
   size?: number;
-  // Base64-encoded file bytes. Set on upload (POST /api/UUFile) to send content.
-  // Returned from POST /api/UUFile/find only when includeFileContentBase64=true
-  // and nodeFind.uuid is set with softDeleted=false. Never returned inside
-  // Aggregate search results.
-  fileContentBase64?: string;
 }
 
 // NodeFindDTO — used by /find endpoints to filter by uuid/softDeleted
@@ -161,7 +165,6 @@ export interface NodeFindDTO {
 export interface UUFileFindRequestDTO {
   nodeFind?: NodeFindDTO;
   accessFind?: AccessFindDTO;
-  includeFileContentBase64?: boolean;
 }
 
 // UUAddress Data Transfer Object
