@@ -17,3 +17,6 @@ export * from './up';
 
 // User service (profile + lookup)
 export * from './user';
+
+// File storage service (S3-backed uploads + signed read URLs)
+export * from './fileStorage';

@@ -6,6 +6,7 @@ import { RegistryServiceClient } from './services/registry/registry-client';
 import { NodeServiceClient } from './services/node/node-client';
 import { UpAuthServiceClient } from './services/up/up-client';
 import { UserServiceClient } from './services/user/user-client';
+import { FileStorageServiceClient } from './services/fileStorage/file-storage-client';
 import {
   AuthResponse,
   EmailPasswordLoginRequest,
@@ -48,6 +49,7 @@ export class Client {
   public node: NodeServiceClient;
   public up: UpAuthServiceClient;
   public user: UserServiceClient;
+  public fileStorage: FileStorageServiceClient;
 
   private readonly STORAGE_KEY = 'iom-auth-state';
   private storage: TokenStorage;
@@ -91,6 +93,12 @@ export class Client {
       resolved.user,
       config.errorHandling || {},
       this.createServiceAxiosInstance(resolved.user.baseUrl)
+    );
+
+    this.fileStorage = new FileStorageServiceClient(
+      resolved.fileStorage,
+      config.errorHandling || {},
+      this.createServiceAxiosInstance(resolved.fileStorage.baseUrl)
     );
 
     this.axiosInstance = this.node.getAxios();

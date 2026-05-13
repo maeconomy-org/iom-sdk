@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { ServiceConfig, ErrorHandlingConfig } from '../../config';
 import { RegistryServiceClient } from '../registry/registry-client';
 import { validateStatementSearchBody } from '../../validation/query-params';
-import { blobToBase64 } from '../../utils/base64';
 import {
   UUID,
   UUObjectDTO,
@@ -30,7 +29,8 @@ import {
   UUMathFormulaDTO,
   UUMathFormulaCalcDTO,
   UUMathFormulaFindDTO,
-  UUMathFormulaCalcFindDTO
+  UUMathFormulaCalcFindDTO,
+  PageUUMathFormula
 } from '../../types';
 
 export class NodeServiceClient {
@@ -245,9 +245,12 @@ export class NodeServiceClient {
   }
 
   /**
-   * Create or update a UUFile record.
-   * POST /api/UUFile — send binary bytes via `fileContentBase64`. The server
-   * determines `size` and ignores `contentType` / `fileReference` logic.
+   * Create or update a UUFile record (metadata only).
+   *
+   * Bytes-in-Mongo is gone. For first-party uploads, run
+   * `client.fileStorage.uploadFile(...)` first and pass the returned
+   * `fileReference` here along with `fileName`, `contentType`, and `size`.
+   * For external URL attachments, pass the URL as `fileReference`.
    */
   async createOrUpdateFile(file: UUFileDTO): Promise<UUFileDTO> {
     const response = await this.axios.post<UUFileDTO>('/api/UUFile', file);
@@ -263,9 +266,9 @@ export class NodeServiceClient {
 
   /**
    * Find UUFile records via POST /api/UUFile/find.
-   * Set `includeFileContentBase64=true` + `nodeFind.uuid` with
-   * `softDeleted=false` to receive the file bytes in `fileContentBase64`.
-   * Otherwise content is always excluded from the response.
+   * Returns metadata only — bytes are served by the FileStorage service via
+   * `client.fileStorage.getPreviewUrl(fileReference)` /
+   * `getDownloadUrl(fileReference)`.
    */
   async findFiles(
     body: UUFileFindRequestDTO,
@@ -277,24 +280,6 @@ export class NodeServiceClient {
       { signal: options?.signal }
     );
     return response.data;
-  }
-
-  /**
-   * Fetch a single file's base64 content by UUID.
-   * Returns null if the file is not found or has no content.
-   */
-  async getFileContent(
-    uuid: UUID,
-    options?: RequestOptions
-  ): Promise<string | null> {
-    const files = await this.findFiles(
-      {
-        nodeFind: { uuid, softDeleted: false },
-        includeFileContentBase64: true
-      },
-      options
-    );
-    return files[0]?.fileContentBase64 ?? null;
   }
 
   async softDeleteFile(uuid: UUID): Promise<{ success: boolean }> {
@@ -440,61 +425,6 @@ export class NodeServiceClient {
         data: null,
         status: error.status || 500,
         statusText: error.message || 'Error uploading file by reference'
-      };
-    }
-  }
-
-  /**
-   * Upload a file's binary content directly.
-   * Complete flow:
-   * 1) Create UUID for the file
-   * 2) Encode file bytes as base64 and POST to /api/UUFile
-   * 3) Create statement to link file to parent object
-   */
-  async uploadFileDirect(input: {
-    file: File | Blob;
-    uuidToAttach: UUID;
-    label?: string;
-  }): Promise<ApiResponse<UUFileDTO | null>> {
-    if (!this.registryClient) {
-      throw new Error('Registry client not available for UUID operations');
-    }
-
-    try {
-      const uuidResponse = await this.registryClient.createUUID();
-      const fileUuid = uuidResponse.uuid;
-
-      const fileContentBase64 = await blobToBase64(input.file);
-      const fileName =
-        typeof File !== 'undefined' && input.file instanceof File
-          ? input.file.name
-          : undefined;
-      const contentType = (input.file as any).type || undefined;
-
-      const uploadedFile = await this.createOrUpdateFile({
-        uuid: fileUuid,
-        fileName,
-        contentType,
-        label: input.label,
-        fileContentBase64
-      });
-
-      await this.createStatement({
-        subject: input.uuidToAttach,
-        predicate: Predicate.HAS_FILE,
-        object: fileUuid
-      });
-
-      return {
-        data: uploadedFile,
-        status: 200,
-        statusText: 'OK'
-      };
-    } catch (error: any) {
-      return {
-        data: null,
-        status: error.status || 500,
-        statusText: error.message || 'Error uploading file binary'
       };
     }
   }
@@ -758,14 +688,16 @@ export class NodeServiceClient {
   }
 
   /**
-   * Search math formulas
-   * POST /api/UUMathFormula/find
+   * Search math formulas.
+   * POST /api/UUMathFormula/find — returns a Spring `Page<UUMathFormula>`
+   * envelope. Access `result.content` for the rows; pagination + audit
+   * fields live alongside.
    */
   async searchMathFormulas(
     body: UUMathFormulaFindDTO,
     options?: RequestOptions
-  ): Promise<UUMathFormulaDTO[]> {
-    const response = await this.axios.post<UUMathFormulaDTO[]>(
+  ): Promise<PageUUMathFormula> {
+    const response = await this.axios.post<PageUUMathFormula>(
       '/api/UUMathFormula/find',
       body ?? {},
       { signal: options?.signal }

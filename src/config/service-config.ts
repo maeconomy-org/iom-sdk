@@ -66,7 +66,8 @@ export const DEFAULT_SERVICE_PATHS = {
   auth: '/auth',
   registry: '/registrar',
   node: '/node-network',
-  user: '/user'
+  user: '/user',
+  fileStorage: '/file-storage'
 } as const;
 
 /** Default port for mTLS certificate authentication */
@@ -81,6 +82,7 @@ export interface ServiceOverrides {
   registry?: Partial<ServiceConfig>;
   node?: Partial<ServiceConfig>;
   user?: Partial<ServiceConfig>;
+  fileStorage?: Partial<ServiceConfig>;
 }
 
 /**
@@ -124,6 +126,7 @@ export function resolveServiceConfigs(config: SDKConfig): {
   registry: ServiceConfig;
   node: ServiceConfig;
   user: ServiceConfig;
+  fileStorage: ServiceConfig;
   certAuth: ServiceConfig;
 } {
   const authBase =
@@ -138,6 +141,9 @@ export function resolveServiceConfigs(config: SDKConfig): {
   const userBase =
     config.services?.user?.baseUrl ||
     `${config.baseUrl.replace(/\/$/, '')}${DEFAULT_SERVICE_PATHS.user}`;
+  const fileStorageBase =
+    config.services?.fileStorage?.baseUrl ||
+    `${config.baseUrl.replace(/\/$/, '')}${DEFAULT_SERVICE_PATHS.fileStorage}`;
 
   const auth: ServiceConfig = {
     baseUrl: authBase,
@@ -160,6 +166,11 @@ export function resolveServiceConfigs(config: SDKConfig): {
     ...config.services?.user,
     ...(config.services?.user ? { baseUrl: userBase } : {})
   };
+  const fileStorage: ServiceConfig = {
+    baseUrl: fileStorageBase,
+    ...config.services?.fileStorage,
+    ...(config.services?.fileStorage ? { baseUrl: fileStorageBase } : {})
+  };
 
   const certAuthBaseUrl = buildCertAuthBaseUrl(
     authBase,
@@ -171,7 +182,7 @@ export function resolveServiceConfigs(config: SDKConfig): {
     refreshBaseUrl: auth.baseUrl
   };
 
-  return { auth, registry, node, user, certAuth };
+  return { auth, registry, node, user, fileStorage, certAuth };
 }
 
 /**
@@ -241,6 +252,11 @@ export function validateSDKConfig(config: SDKConfig): void {
     validateServiceConfig({ baseUrl: overrides.node.baseUrl }, 'node');
   if (overrides?.user?.baseUrl)
     validateServiceConfig({ baseUrl: overrides.user.baseUrl }, 'user');
+  if (overrides?.fileStorage?.baseUrl)
+    validateServiceConfig(
+      { baseUrl: overrides.fileStorage.baseUrl },
+      'fileStorage'
+    );
 
   // Validate token storage option
   if (

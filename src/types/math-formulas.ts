@@ -1,16 +1,20 @@
 /**
- * Math Formula and Calculation types (from Swagger documentation)
+ * Math Formula and Calculation types.
+ *
+ * Shape sourced from `docs/node.swagger.json`. Write-side uses the lean
+ * `*DTO` shapes; read-side (find responses) returns the full entity with
+ * audit fields wrapped in a Spring `Page<T>` envelope.
  */
 
-import { UUID } from './services';
+import { NodeFindDTO, UUID } from './services';
+import type { AuditUser } from './aggregates';
 
 // ============================================================================
-// MATH FORMULA TYPES
+// MATH FORMULA — WRITE SHAPES
 // ============================================================================
 
 /**
- * UUMathFormula Data Transfer Object
- * Represents a reusable math formula definition
+ * UUMathFormulaDTO — request body for `POST /api/UUMathFormula`.
  */
 export interface UUMathFormulaDTO {
   uuid: UUID;
@@ -22,8 +26,8 @@ export interface UUMathFormulaDTO {
 }
 
 /**
- * UUMathFormulaCalc Data Transfer Object
- * Represents a calculation instance that links a formula to property values
+ * UUMathFormulaCalcDTO — request body for `POST /api/UUMathFormulaCalc`.
+ * Links a formula to concrete property-value bindings + output target.
  */
 export interface UUMathFormulaCalcDTO {
   uuid: UUID;
@@ -32,19 +36,38 @@ export interface UUMathFormulaCalcDTO {
   result: UUMathFormulaCalcResult;
 }
 
-/**
- * Argument for a formula calculation - maps a variable name to a property value
- */
+/** Maps a variable name in the expression to a property-value UUID. */
 export interface UUMathFormulaCalcArg {
   name: string;
   propertyValueUUID: UUID;
 }
 
-/**
- * Result of a formula calculation - references the output property value
- */
+/** References the property-value UUID that will receive the computed result. */
 export interface UUMathFormulaCalcResult {
   propertyValueUUID: UUID;
+}
+
+// ============================================================================
+// MATH FORMULA — READ SHAPES (find responses)
+// ============================================================================
+
+/**
+ * UUMathFormula — entity shape returned by `POST /api/UUMathFormula/find`.
+ * Adds audit + soft-delete fields on top of the DTO shape.
+ */
+export interface UUMathFormula {
+  uuid: UUID;
+  name?: string;
+  expression?: string;
+  description?: string;
+  version?: string;
+  createdAt?: string;
+  createdBy?: AuditUser;
+  lastUpdatedAt?: string;
+  lastUpdatedBy?: AuditUser;
+  softDeletedAt?: string;
+  softDeleteBy?: AuditUser;
+  softDeleted?: boolean;
 }
 
 // ============================================================================
@@ -52,34 +75,59 @@ export interface UUMathFormulaCalcResult {
 // ============================================================================
 
 /**
- * Search parameters for finding math formulas
+ * Request body for `POST /api/UUMathFormula/find`. Swagger requires only
+ * `{ nodeFind, page, size }` — past flattened fields (`uuid`, `name`, etc.)
+ * are no longer accepted at the top level.
  */
 export interface UUMathFormulaFindDTO {
-  uuid?: UUID;
-  name?: string;
-  groupUUID?: UUID;
-  softDeleted?: boolean;
-  accessFind?: {
-    readDefaultGroup?: boolean;
-    readOwnGroups?: boolean;
-    readPublicGroups?: boolean;
-    readUserSharedGroups?: boolean;
-    groupUUIDList?: string[];
-  };
+  nodeFind?: NodeFindDTO;
+  /** Zero-based page index. */
+  page?: number;
+  /** Page size. */
+  size?: number;
 }
 
 /**
- * Search parameters for finding formula calculations
+ * UUMathFormulaCalc find still routes through the generic
+ * `NodeFindRequestDTO` (page response is `object` in swagger — kept loose
+ * here until the backend tightens the contract).
  */
 export interface UUMathFormulaCalcFindDTO {
-  uuid?: UUID;
-  groupUUID?: UUID;
-  softDeleted?: boolean;
-  accessFind?: {
-    readDefaultGroup?: boolean;
-    readOwnGroups?: boolean;
-    readPublicGroups?: boolean;
-    readUserSharedGroups?: boolean;
-    groupUUIDList?: string[];
-  };
+  nodeFind?: NodeFindDTO;
+  page?: number;
+  size?: number;
+}
+
+// ============================================================================
+// PAGINATION ENVELOPES
+// ============================================================================
+
+export interface SortObject {
+  sorted?: boolean;
+  unsorted?: boolean;
+  empty?: boolean;
+}
+
+export interface PageableObject {
+  paged?: boolean;
+  unpaged?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+  offset?: number;
+  sort?: SortObject;
+}
+
+/** Spring `Page<UUMathFormula>` envelope. */
+export interface PageUUMathFormula {
+  content?: UUMathFormula[];
+  totalElements?: number;
+  totalPages?: number;
+  number?: number;
+  size?: number;
+  numberOfElements?: number;
+  first?: boolean;
+  last?: boolean;
+  empty?: boolean;
+  pageable?: PageableObject;
+  sort?: SortObject;
 }
