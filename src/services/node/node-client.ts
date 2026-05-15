@@ -25,12 +25,13 @@ import {
   GroupCreateDTO,
   GroupAddRecordsDTO,
   GroupListParams,
-  GroupRecord,
   PageImplGroupFullDTO,
+  PageImplGroupRecord,
   UUMathFormulaDTO,
   UUMathFormulaCalcDTO,
   UUMathFormulaFindDTO,
-  UUMathFormulaCalcFindDTO
+  UUMathFormulaCalcFindDTO,
+  PageImplUUMathFormula
 } from '../../types';
 
 export class NodeServiceClient {
@@ -714,16 +715,65 @@ export class NodeServiceClient {
   }
 
   /**
-   * List records in a group
+   * List records in a group (paginated)
    * GET /api/access/groups/{groupUUID}/records
    */
   async listGroupRecords(
     groupUUID: UUID,
+    params?: GroupListParams,
     options?: RequestOptions
-  ): Promise<GroupRecord[]> {
-    const response = await this.axios.get<GroupRecord[]>(
+  ): Promise<PageImplGroupRecord> {
+    const response = await this.axios.get<PageImplGroupRecord>(
       `/api/access/groups/${groupUUID}/records`,
-      { signal: options?.signal }
+      {
+        params: {
+          page: params?.page ?? 0,
+          size: params?.size ?? 20,
+        },
+        signal: options?.signal,
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * List groups owned by the authenticated user (non-default only, paginated)
+   * GET /api/access/groups/own
+   */
+  async listOwnGroups(
+    params?: GroupListParams,
+    options?: RequestOptions
+  ): Promise<PageImplGroupFullDTO> {
+    const response = await this.axios.get<PageImplGroupFullDTO>(
+      '/api/access/groups/own',
+      {
+        params: {
+          page: params?.page ?? 0,
+          size: params?.size ?? 20,
+        },
+        signal: options?.signal,
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * List groups explicitly shared with the authenticated user (paginated)
+   * GET /api/access/groups/shared
+   */
+  async listSharedGroups(
+    params?: GroupListParams,
+    options?: RequestOptions
+  ): Promise<PageImplGroupFullDTO> {
+    const response = await this.axios.get<PageImplGroupFullDTO>(
+      '/api/access/groups/shared',
+      {
+        params: {
+          page: params?.page ?? 0,
+          size: params?.size ?? 20,
+        },
+        signal: options?.signal,
+      }
     );
     return response.data;
   }
@@ -758,16 +808,21 @@ export class NodeServiceClient {
   }
 
   /**
-   * Search math formulas
+   * Search math formulas (paginated)
    * POST /api/UUMathFormula/find
    */
   async searchMathFormulas(
     body: UUMathFormulaFindDTO,
+    params?: { page?: number; size?: number },
     options?: RequestOptions
-  ): Promise<UUMathFormulaDTO[]> {
-    const response = await this.axios.post<UUMathFormulaDTO[]>(
+  ): Promise<PageImplUUMathFormula> {
+    const response = await this.axios.post<PageImplUUMathFormula>(
       '/api/UUMathFormula/find',
-      body ?? {},
+      {
+        nodeFind: body ?? {},
+        page: params?.page ?? 0,
+        size: params?.size ?? 20,
+      },
       { signal: options?.signal }
     );
     return response.data;

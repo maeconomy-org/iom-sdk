@@ -85,3 +85,33 @@ export interface GroupRecord {
   groupUUID?: string;
   recordUUID?: string;
 }
+
+// Paginated response for group records (matches Spring PageImpl)
+export interface PageImplGroupRecord {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  content: GroupRecord[];
+  number: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+  pageable: {
+    paged: boolean;
+    pageNumber: number;
+    pageSize: number;
+    offset: number;
+    sort: {
+      sorted: boolean;
+      empty: boolean;
+      unsorted: boolean;
+    };
+    unpaged: boolean;
+  };
+  sort: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
+  };
+}

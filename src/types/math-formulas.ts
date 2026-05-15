@@ -22,6 +22,57 @@ export interface UUMathFormulaDTO {
 }
 
 /**
+ * UUMathFormula entity (with audit fields)
+ * Matches the schema of items returned by paginated POST /api/UUMathFormula/find
+ */
+export interface UUMathFormula {
+  createdAt?: string;
+  createdBy?: { uuid?: UUID; username?: string };
+  lastUpdatedAt?: string;
+  lastUpdatedBy?: { uuid?: UUID; username?: string };
+  softDeletedAt?: string;
+  softDeleteBy?: { uuid?: UUID; username?: string };
+  softDeleted?: boolean;
+  uuid?: UUID;
+  name?: string;
+  expression?: string;
+  description?: string;
+  version?: string;
+}
+
+/**
+ * Paginated response for math formulas (matches Spring PageImpl)
+ */
+export interface PageImplUUMathFormula {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  content: UUMathFormula[];
+  number: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+  pageable: {
+    paged: boolean;
+    pageNumber: number;
+    pageSize: number;
+    offset: number;
+    sort: {
+      sorted: boolean;
+      empty: boolean;
+      unsorted: boolean;
+    };
+    unpaged: boolean;
+  };
+  sort: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
+  };
+}
+
+/**
  * UUMathFormulaCalc Data Transfer Object
  * Represents a calculation instance that links a formula to property values
  */
