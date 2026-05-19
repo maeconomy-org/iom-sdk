@@ -10,9 +10,9 @@ import {
   UUPropertyValueDTO,
   UUStatementDTO,
   UUFileDTO,
-  UUFileFindRequestDTO,
   UUAddressDTO,
   QueryParams,
+  NodeFindRequestDTO,
   UUStatementsAccessFindDTO,
   AggregateCreateDTO,
   AggregateEntity,
@@ -32,6 +32,18 @@ import {
   UUMathFormulaCalcFindDTO,
   PageUUMathFormula
 } from '../../types';
+
+function paramsToNodeFind(params?: QueryParams): NodeFindRequestDTO {
+  if (!params) return {};
+  const { uuid, softDeleted } = params;
+  if (uuid === undefined && softDeleted === undefined) return {};
+  return {
+    nodeFind: {
+      ...(uuid !== undefined && { uuid }),
+      ...(softDeleted !== undefined && { softDeleted })
+    }
+  };
+}
 
 export class NodeServiceClient {
   constructor(
@@ -65,10 +77,11 @@ export class NodeServiceClient {
     params?: QueryParams,
     options?: RequestOptions
   ): Promise<UUObjectDTO[]> {
-    const response = await this.axios.get<UUObjectDTO[]>('/api/UUObject', {
-      params,
-      signal: options?.signal
-    });
+    const response = await this.axios.post<UUObjectDTO[]>(
+      '/api/UUObject/find',
+      paramsToNodeFind(params),
+      { signal: options?.signal }
+    );
     return response.data;
   }
 
@@ -95,10 +108,11 @@ export class NodeServiceClient {
     params?: QueryParams,
     options?: RequestOptions
   ): Promise<UUPropertyDTO[]> {
-    const response = await this.axios.get<UUPropertyDTO[]>('/api/UUProperty', {
-      params,
-      signal: options?.signal
-    });
+    const response = await this.axios.post<UUPropertyDTO[]>(
+      '/api/UUProperty/find',
+      paramsToNodeFind(params),
+      { signal: options?.signal }
+    );
     return response.data;
   }
 
@@ -132,17 +146,6 @@ export class NodeServiceClient {
   // ============================================================================
   // PROPERTY VALUE OPERATIONS
   // ============================================================================
-
-  async getPropertyValues(
-    params?: QueryParams,
-    options?: RequestOptions
-  ): Promise<UUPropertyValueDTO[]> {
-    const response = await this.axios.get<UUPropertyValueDTO[]>(
-      '/api/UUPropertyValue',
-      { params, signal: options?.signal }
-    );
-    return response.data;
-  }
 
   async createOrUpdatePropertyValue(
     value: UUPropertyValueDTO
@@ -233,17 +236,6 @@ export class NodeServiceClient {
   // FILE OPERATIONS
   // ============================================================================
 
-  async getFiles(
-    params?: QueryParams,
-    options?: RequestOptions
-  ): Promise<UUFileDTO[]> {
-    const response = await this.axios.get<UUFileDTO[]>('/api/UUFile', {
-      params,
-      signal: options?.signal
-    });
-    return response.data;
-  }
-
   /**
    * Create or update a UUFile record (metadata only).
    *
@@ -257,13 +249,6 @@ export class NodeServiceClient {
     return response.data;
   }
 
-  async getFile(uuid: UUID, options?: RequestOptions): Promise<UUFileDTO> {
-    const response = await this.axios.get<UUFileDTO>(`/api/UUFile/${uuid}`, {
-      signal: options?.signal
-    });
-    return response.data;
-  }
-
   /**
    * Find UUFile records via POST /api/UUFile/find.
    * Returns metadata only — bytes are served by the FileStorage service via
@@ -271,7 +256,7 @@ export class NodeServiceClient {
    * `getDownloadUrl(fileReference)`.
    */
   async findFiles(
-    body: UUFileFindRequestDTO,
+    body: NodeFindRequestDTO,
     options?: RequestOptions
   ): Promise<UUFileDTO[]> {
     const response = await this.axios.post<UUFileDTO[]>(
@@ -292,17 +277,6 @@ export class NodeServiceClient {
   // ============================================================================
   // ADDRESS OPERATIONS
   // ============================================================================
-
-  async getAddresses(
-    params?: QueryParams,
-    options?: RequestOptions
-  ): Promise<UUAddressDTO[]> {
-    const response = await this.axios.get<UUAddressDTO[]>('/api/UUAddress', {
-      params,
-      signal: options?.signal
-    });
-    return response.data;
-  }
 
   async createOrUpdateAddress(address: UUAddressDTO): Promise<UUAddressDTO> {
     const response = await this.axios.post<UUAddressDTO>(
@@ -564,11 +538,11 @@ export class NodeServiceClient {
 
       for (const statement of statements) {
         try {
-          const allValues = await this.getPropertyValues({
-            uuid: statement.object,
-            ...params
-          });
-          const value = allValues.find(v => v.uuid === statement.object);
+          const response = await this.axios.post<UUPropertyValueDTO[]>(
+            '/api/UUPropertyValue/find',
+            paramsToNodeFind({ uuid: statement.object, ...params })
+          );
+          const value = response.data.find(v => v.uuid === statement.object);
           if (value) {
             values.push(value);
           }

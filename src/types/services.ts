@@ -161,11 +161,15 @@ export interface NodeFindDTO {
   softDeleted?: boolean;
 }
 
-// Request body for POST /api/UUFile/find
-export interface UUFileFindRequestDTO {
+// Request body for the unified POST /api/<Resource>/find endpoints
+// (UUObject, UUProperty, UUPropertyValue, UUFile, UUAddress).
+export interface NodeFindRequestDTO {
   nodeFind?: NodeFindDTO;
   accessFind?: AccessFindDTO;
 }
+
+// Back-compat alias — UUFile's /find body shares the unified shape.
+export type UUFileFindRequestDTO = NodeFindRequestDTO;
 
 // UUAddress Data Transfer Object
 export interface UUAddressDTO {

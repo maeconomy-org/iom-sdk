@@ -18,23 +18,12 @@ export interface UUIDCreationResponse {
   uuid: string;
 }
 
-export interface UUIDAuthParams {
-  uuid: string;
-  userUUID: string;
-  resourceId: string;
-}
-
 export class RegistryServiceClient {
   constructor(
     _config: ServiceConfig,
     _errorHandling: ErrorHandlingConfig,
     private axios: AxiosInstance
   ) {}
-
-  async getOwnedUUIDs(): Promise<UUIDRecord[]> {
-    const response = await this.axios.get<UUIDRecord[]>('/api/UUID/own');
-    return response.data;
-  }
 
   async createUUID(): Promise<UUIDCreationResponse> {
     const response = await this.axios.post<UUIDCreationResponse>('/api/UUID');
@@ -51,21 +40,8 @@ export class RegistryServiceClient {
     meta: Record<string, any>
   ): Promise<UUIDRecord> {
     const response = await this.axios.put<UUIDRecord>(
-      `/api/UUID/UUIDRecordMeta`,
+      `/api/UUID/${uuid}/UUIDRecordMeta`,
       meta
-    );
-    return response.data;
-  }
-
-  async authorizeUUIDRecord(
-    params: UUIDAuthParams
-  ): Promise<{ success: boolean }> {
-    const response = await this.axios.post<{ success: boolean }>(
-      `/api/UUID/authorize`,
-      {
-        userUUID: params.userUUID,
-        resourceId: params.resourceId
-      }
     );
     return response.data;
   }
