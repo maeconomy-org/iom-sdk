@@ -47,6 +47,14 @@ export interface FileStorageInitResponseDTO {
   partSize: number | null;
   /** ISO-8601 timestamp — all URLs in `urls` expire at this moment. */
   expiresAt: string;
+  /**
+   * When `true`, the presigned PUT URLs include `x-amz-checksum-sha256` in
+   * their `SignedHeaders` and the SDK must send a base64 per-part SHA-256
+   * with every PUT (S3 verifies on the spot). When `false`/missing, the
+   * SDK skips the header — a stray header on a `SignedHeaders=host` URL
+   * would 403 with `SignatureDoesNotMatch`.
+   */
+  checksumValidation?: boolean;
 }
 
 /**
@@ -163,19 +171,13 @@ export type FileMetadata = FileMetadataResponseDTO;
 export type PreviewUrlResponse = PreviewUrlResponseDTO;
 
 /**
- * Until the backend ships a JSON `/download-url` endpoint that mirrors
- * `/preview-url` with `attachment` disposition baked in, the SDK exposes
- * this shape from `getDownloadUrl` and currently routes it through the
- * preview-url endpoint. When the backend adds the dedicated endpoint, switch
- * the implementation without touching callers.
- *
- * TODO(backend): GET /api/FileStorage/{fileReference}/download-url
- *   → { url, expiresAt } with `response-content-disposition=attachment`
+ * URL of `GET /api/FileStorage/{fileReference}/download` — unauthenticated
+ * endpoint that 302-redirects to a presigned S3 URL with
+ * `Content-Disposition: attachment` baked in. The SDK builds this synchronously;
+ * the browser navigates and S3 serves the download.
  */
 export interface DownloadUrlResponse {
   url: string;
-  /** ISO-8601. */
-  expiresAt: string;
 }
 
 /**

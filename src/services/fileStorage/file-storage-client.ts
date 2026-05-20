@@ -62,6 +62,8 @@ const PATH_METADATA = (fileReference: string) =>
   `/api/FileStorage/${encodeURIComponent(fileReference)}`;
 const PATH_PREVIEW = (fileReference: string) =>
   `/api/FileStorage/${encodeURIComponent(fileReference)}/preview-url`;
+const PATH_DOWNLOAD = (fileReference: string) =>
+  `/api/FileStorage/${encodeURIComponent(fileReference)}/download`;
 const PATH_SOFT_DELETE = (fileReference: string) =>
   `/api/FileStorage/${encodeURIComponent(fileReference)}/delete`;
 
@@ -193,23 +195,9 @@ export class FileStorageServiceClient {
     return res.data;
   }
 
-  /**
-   * Temporary shim: the swagger doesn't yet expose a JSON `/download-url`
-   * endpoint mirroring `/preview-url` with `attachment` disposition. Until
-   * backend adds it, we reuse the preview URL — relying on the `download`
-   * attribute on the `<a>` element to trigger the download dialog rather
-   * than the server-signed `Content-Disposition: attachment`.
-   *
-   * TODO(backend): GET /api/FileStorage/{fileReference}/download-url returning
-   * { url, expiresAt } with `response-content-disposition=attachment` baked
-   * into the signed URL. Then change this method to call that endpoint.
-   */
-  async getDownloadUrl(
-    fileReference: string,
-    opts?: RequestOptions
-  ): Promise<DownloadUrlResponse> {
-    const preview = await this.getPreviewUrl(fileReference, opts);
-    return { url: preview.url, expiresAt: preview.expiresAt };
+  getDownloadUrl(fileReference: string): DownloadUrlResponse {
+    const base = (this.axios.defaults.baseURL ?? '').replace(/\/$/, '');
+    return { url: `${base}${PATH_DOWNLOAD(fileReference)}` };
   }
 
   // ------------------------------------------------------------------------
@@ -268,17 +256,22 @@ export class FileStorageServiceClient {
 
       // 3. Single-shot path: one URL, partSize null.
       if (init.urls.length === 1 && init.partSize === null) {
+        const checksumSHA256 = init.checksumValidation
+          ? await hasher.hashPart(file, signal)
+          : undefined;
         const etag = await putToS3({
           url: init.urls[0],
           body: file,
           contentType: resolvedType,
+          checksumSHA256,
           signal,
           onProgress: loaded => progress.set(1, loaded)
         });
         progress.flush();
-        return this.completeUpload(init.uploadId, [{ partNumber: 1, etag }], {
-          signal
-        });
+        const part: PartETag = checksumSHA256
+          ? { partNumber: 1, etag, checksumSHA256 }
+          : { partNumber: 1, etag };
+        return this.completeUpload(init.uploadId, [part], { signal });
       }
 
       // 4. Multipart path.
@@ -293,6 +286,7 @@ export class FileStorageServiceClient {
         file,
         contentType: resolvedType,
         concurrency: resolvedConcurrency,
+        hasher,
         onPartLoaded: (partNumber, loaded) => progress.set(partNumber, loaded),
         signal
       });
@@ -322,10 +316,12 @@ export class FileStorageServiceClient {
     file: Blob;
     contentType: string;
     concurrency: number;
+    hasher: Sha256Hasher;
     onPartLoaded: (partNumber: number, loaded: number) => void;
     signal?: AbortSignal;
   }): Promise<CompletedPart[]> {
-    const { init, file, contentType, concurrency, onPartLoaded, signal } = args;
+    const { init, file, contentType, concurrency, hasher, onPartLoaded, signal } = args;
+    const wantChecksum = init.checksumValidation === true;
 
     const partCount = init.urls.length;
     // URLs are 0-indexed in `init.urls`; part numbers are 1-indexed.
@@ -382,6 +378,12 @@ export class FileStorageServiceClient {
       const end = Math.min(offset + init.partSize, file.size);
       const partBlob = file.slice(offset, end);
 
+      // Cached so retries don't rehash the part. Concurrent `hashPart` calls
+      // are safe — the worker stub runs each as an independent operation.
+      const checksumSHA256 = wantChecksum
+        ? await hasher.hashPart(partBlob, signal)
+        : undefined;
+
       let attempt = 0;
       // eslint-disable-next-line no-constant-condition
       while (true) {
@@ -392,11 +394,14 @@ export class FileStorageServiceClient {
             url,
             body: partBlob,
             contentType,
+            checksumSHA256,
             signal,
             onProgress: loaded => onPartLoaded(partNumber, loaded)
           });
           onPartLoaded(partNumber, partBlob.size);
-          const entry: PartETag = { partNumber, etag };
+          const entry: PartETag = checksumSHA256
+            ? { partNumber, etag, checksumSHA256 }
+            : { partNumber, etag };
           completed.set(partNumber, entry);
           return;
         } catch (err) {
@@ -477,6 +482,12 @@ interface PutToS3Args {
   url: string;
   body: Blob;
   contentType: string;
+  /**
+   * Base64-encoded SHA-256 of `body`. When set, sent as
+   * `x-amz-checksum-sha256` for S3 to verify the part's bytes on the spot.
+   * Only safe when the URL was signed with this header in `SignedHeaders`.
+   */
+  checksumSHA256?: string;
   signal?: AbortSignal;
   /**
    * Optional byte-progress for this single PUT. Note: native `fetch` doesn't
@@ -493,11 +504,14 @@ interface PutToS3Args {
  * orchestrator can decide retry vs refresh vs terminal.
  */
 async function putToS3(args: PutToS3Args): Promise<string> {
-  const { url, body, contentType, signal, onProgress } = args;
+  const { url, body, contentType, checksumSHA256, signal, onProgress } = args;
   throwIfAborted(signal);
   onProgress?.(0);
 
   const headers: Record<string, string> = { 'Content-Type': contentType };
+  if (checksumSHA256) {
+    headers['x-amz-checksum-sha256'] = checksumSHA256;
+  }
 
   let res: Response;
   try {
