@@ -631,9 +631,9 @@ export class NodeServiceClient {
       {
         params: {
           page: params?.page ?? 0,
-          size: params?.size ?? 20,
+          size: params?.size ?? 20
         },
-        signal: options?.signal,
+        signal: options?.signal
       }
     );
     return response.data;
@@ -652,9 +652,9 @@ export class NodeServiceClient {
       {
         params: {
           page: params?.page ?? 0,
-          size: params?.size ?? 20,
+          size: params?.size ?? 20
         },
-        signal: options?.signal,
+        signal: options?.signal
       }
     );
     return response.data;
@@ -673,9 +673,9 @@ export class NodeServiceClient {
       {
         params: {
           page: params?.page ?? 0,
-          size: params?.size ?? 20,
+          size: params?.size ?? 20
         },
-        signal: options?.signal,
+        signal: options?.signal
       }
     );
     return response.data;
@@ -726,7 +726,7 @@ export class NodeServiceClient {
       {
         nodeFind: body ?? {},
         page: params?.page ?? 0,
-        size: params?.size ?? 20,
+        size: params?.size ?? 20
       },
       { signal: options?.signal }
     );

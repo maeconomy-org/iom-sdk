@@ -320,7 +320,15 @@ export class FileStorageServiceClient {
     onPartLoaded: (partNumber: number, loaded: number) => void;
     signal?: AbortSignal;
   }): Promise<CompletedPart[]> {
-    const { init, file, contentType, concurrency, hasher, onPartLoaded, signal } = args;
+    const {
+      init,
+      file,
+      contentType,
+      concurrency,
+      hasher,
+      onPartLoaded,
+      signal
+    } = args;
     const wantChecksum = init.checksumValidation === true;
 
     const partCount = init.urls.length;
