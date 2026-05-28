@@ -28,8 +28,8 @@ import {
   PageImplGroupRecord,
   UUMathFormulaDTO,
   UUMathFormulaCalcDTO,
-  UUMathFormulaFindDTO,
   UUMathFormulaCalcFindDTO,
+  NodeFindDTO,
   PageUUMathFormula
 } from '../../types';
 
@@ -717,7 +717,7 @@ export class NodeServiceClient {
    * fields live alongside.
    */
   async searchMathFormulas(
-    body: UUMathFormulaFindDTO,
+    body: NodeFindDTO,
     params?: { page?: number; size?: number },
     options?: RequestOptions
   ): Promise<PageUUMathFormula> {
