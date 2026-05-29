@@ -16,7 +16,7 @@
 import { sha256Hex, sha256Base64 } from './sha256';
 
 export interface Sha256Hasher {
-  /** Full-file SHA-256 as lowercase hex (for `InitUploadRequest.sha256`). */
+  /** Full-file SHA-256 as lowercase hex (for `FileStorageInitDTO.sha256`). */
   hashFullFile(blob: Blob, signal?: AbortSignal): Promise<string>;
   /** Per-part SHA-256 as base64 (for `x-amz-checksum-sha256` header). */
   hashPart(blob: Blob, signal?: AbortSignal): Promise<string>;

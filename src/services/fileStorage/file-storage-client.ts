@@ -30,6 +30,7 @@ import { ServiceConfig, ErrorHandlingConfig } from '../../config';
 import {
   CompletedPart,
   DownloadUrlResponse,
+  DownloadUrlResponseDTO,
   FileMetadataResponseDTO,
   FileStorageCompleteDTO,
   FileStorageCompleteResponseDTO,
@@ -195,9 +196,22 @@ export class FileStorageServiceClient {
     return res.data;
   }
 
-  getDownloadUrl(fileReference: string): DownloadUrlResponse {
-    const base = (this.axios.defaults.baseURL ?? '').replace(/\/$/, '');
-    return { url: `${base}${PATH_DOWNLOAD(fileReference)}` };
+  /**
+   * Authenticated GET that returns a presigned S3 download URL as JSON
+   * (`{ url, expiresAt }`). The JWT is attached to this request by the axios
+   * interceptor; the consumer then navigates the browser to `url`, so the JWT
+   * never reaches S3. The presigned URL has `Content-Disposition: attachment`
+   * baked in by the server. Twin of `getPreviewUrl`.
+   */
+  async getDownloadUrl(
+    fileReference: string,
+    opts?: RequestOptions
+  ): Promise<DownloadUrlResponse> {
+    const res = await this.axios.get<DownloadUrlResponseDTO>(
+      PATH_DOWNLOAD(fileReference),
+      { signal: opts?.signal }
+    );
+    return res.data;
   }
 
   // ------------------------------------------------------------------------
@@ -498,22 +512,112 @@ interface PutToS3Args {
   checksumSHA256?: string;
   signal?: AbortSignal;
   /**
-   * Optional byte-progress for this single PUT. Note: native `fetch` doesn't
-   * report upload progress; we approximate by emitting 0 at start and the
-   * full size after success. Real per-byte progress would require XHR.
+   * Optional byte-progress for this single PUT. The XHR path reports real
+   * per-byte upload progress via `xhr.upload.onprogress`. The fetch fallback
+   * (non-browser environments) can only emit 0 at start and the full size on
+   * success — native `fetch` exposes no upload-progress events.
    */
   onProgress?: (loaded: number) => void;
 }
 
 /**
- * Single PUT to a presigned S3 URL via `fetch`. Returns the ETag.
+ * Single PUT to a presigned S3 URL. Returns the ETag.
  *
- * Maps fetch failures + S3 response codes to `FileStorageError` kinds so the
- * orchestrator can decide retry vs refresh vs terminal.
+ * Uses `XMLHttpRequest` when available (browsers) so the upload reports real
+ * per-byte progress; falls back to `fetch` where XHR is absent (e.g. Node).
+ * Both map S3 response codes to `FileStorageError` kinds via `mapS3Error` so
+ * the orchestrator can decide retry vs refresh vs terminal.
  */
-async function putToS3(args: PutToS3Args): Promise<string> {
+function putToS3(args: PutToS3Args): Promise<string> {
+  throwIfAborted(args.signal);
+  return typeof XMLHttpRequest !== 'undefined'
+    ? putToS3ViaXhr(args)
+    : putToS3ViaFetch(args);
+}
+
+/**
+ * XHR PUT — emits real upload progress through `xhr.upload.onprogress`. This is
+ * the only browser API that surfaces request-body byte progress (`fetch` does
+ * not), so it's what makes the upload progress bar advance smoothly.
+ */
+function putToS3ViaXhr(args: PutToS3Args): Promise<string> {
   const { url, body, contentType, checksumSHA256, signal, onProgress } = args;
-  throwIfAborted(signal);
+  return new Promise<string>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new FileStorageError('Aborted', 'Upload aborted'));
+      return;
+    }
+    onProgress?.(0);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url, true);
+    xhr.setRequestHeader('Content-Type', contentType);
+    if (checksumSHA256) {
+      xhr.setRequestHeader('x-amz-checksum-sha256', checksumSHA256);
+    }
+
+    const onAbort = () => xhr.abort();
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+
+    xhr.upload.onprogress = (e: ProgressEvent) => {
+      if (e.lengthComputable) onProgress?.(e.loaded);
+    };
+    xhr.onload = () => {
+      cleanup();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const etag =
+          xhr.getResponseHeader('ETag') ?? xhr.getResponseHeader('etag');
+        if (!etag) {
+          // CORS forgot to expose ETag — backend infra issue, can't proceed.
+          reject(
+            new FileStorageError(
+              'CorsOrNetwork',
+              'S3 PUT succeeded but ETag was not readable — bucket must set Access-Control-Expose-Headers: ETag'
+            )
+          );
+          return;
+        }
+        onProgress?.(body.size);
+        resolve(etag.replace(/^"|"$/g, ''));
+        return;
+      }
+      reject(
+        mapS3Error(
+          xhr.status,
+          xhr.responseText,
+          xhr.getResponseHeader('retry-after')
+        )
+      );
+    };
+    xhr.onerror = () => {
+      cleanup();
+      // XHR collapses CORS / DNS / connection failures into a single opaque
+      // error event — indistinguishable, so flag it as `CorsOrNetwork`.
+      reject(
+        signal?.aborted
+          ? new FileStorageError('Aborted', 'Upload aborted')
+          : new FileStorageError(
+              'CorsOrNetwork',
+              'Network or CORS failure during S3 PUT — verify bucket CORS allows PUT + exposes ETag'
+            )
+      );
+    };
+    xhr.onabort = () => {
+      cleanup();
+      reject(new FileStorageError('Aborted', 'Upload aborted'));
+    };
+
+    xhr.send(body);
+  });
+}
+
+/**
+ * Fetch PUT — fallback for environments without `XMLHttpRequest` (e.g. Node).
+ * Cannot report intermediate upload progress; emits 0 then full size only.
+ */
+async function putToS3ViaFetch(args: PutToS3Args): Promise<string> {
+  const { url, body, contentType, checksumSHA256, signal, onProgress } = args;
   onProgress?.(0);
 
   const headers: Record<string, string> = { 'Content-Type': contentType };
@@ -549,6 +653,7 @@ async function putToS3(args: PutToS3Args): Promise<string> {
       'S3 PUT succeeded but ETag was not readable — bucket must set Access-Control-Expose-Headers: ETag'
     );
   }
+  onProgress?.(body.size);
   return etag.replace(/^"|"$/g, '');
 }
 
@@ -564,10 +669,23 @@ async function s3ErrorFromResponse(res: Response): Promise<FileStorageError> {
   } catch {
     /* ignore */
   }
+  return mapS3Error(res.status, body, res.headers.get('retry-after'));
+}
+
+/**
+ * Map an S3 status + (optional XML) body to a `FileStorageError` kind. Pure and
+ * synchronous so both the fetch and XHR PUT paths can share it — the only
+ * difference is how each obtains the body text and `Retry-After` header.
+ */
+function mapS3Error(
+  status: number,
+  body: string,
+  retryAfterHeader: string | null
+): FileStorageError {
   const codeMatch = body.match(/<Code>([^<]+)<\/Code>/);
   const code = codeMatch?.[1];
 
-  if (res.status === 403) {
+  if (status === 403) {
     if (
       code === 'AccessDenied' ||
       code === 'ExpiredToken' ||
@@ -577,7 +695,7 @@ async function s3ErrorFromResponse(res: Response): Promise<FileStorageError> {
     }
     return new FileStorageError('Forbidden', `S3 403: ${code ?? 'forbidden'}`);
   }
-  if (res.status === 400) {
+  if (status === 400) {
     if (code === 'BadDigest') {
       return new FileStorageError('BadDigest', 'S3 reported BadDigest');
     }
@@ -586,20 +704,20 @@ async function s3ErrorFromResponse(res: Response): Promise<FileStorageError> {
       `S3 400: ${code ?? 'invalid'}`
     );
   }
-  if (res.status === 404) {
+  if (status === 404) {
     return new FileStorageError('NotFound', 'S3 404');
   }
-  if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
-    const retryAfter = parseRetryAfter(res.headers.get('retry-after'));
+  if (status === 429 || (status >= 500 && status < 600)) {
+    const retryAfter = parseRetryAfter(retryAfterHeader);
     return new FileStorageError(
-      res.status === 429 ? 'Throttled' : 'CorsOrNetwork',
-      `S3 ${res.status}: ${code ?? 'transient'}`,
+      status === 429 ? 'Throttled' : 'CorsOrNetwork',
+      `S3 ${status}: ${code ?? 'transient'}`,
       { retryAfter }
     );
   }
   return new FileStorageError(
     'InvalidRequest',
-    `S3 ${res.status}: ${code ?? 'unknown'}`
+    `S3 ${status}: ${code ?? 'unknown'}`
   );
 }
 

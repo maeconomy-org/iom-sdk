@@ -22,51 +22,6 @@ export interface AggregateFindDTO {
 }
 
 /**
- * Aggregate file entity with metadata
- */
-export interface AggregateFile {
-  createdAt?: string;
-  createdBy?: AuditUser;
-  lastUpdatedAt?: string;
-  lastUpdatedBy?: AuditUser;
-  softDeletedAt?: string;
-  softDeleteBy?: AuditUser;
-  softDeleted?: boolean;
-  uuid?: string;
-  fileName?: string;
-  fileReference?: string;
-  label?: string;
-  contentType?: string;
-  size?: number;
-}
-
-/**
- * Aggregate property entity with optional values
- */
-export interface AggregateProperty {
-  createdAt?: string;
-  createdBy?: AuditUser;
-  lastUpdatedAt?: string;
-  lastUpdatedBy?: AuditUser;
-  softDeletedAt?: string;
-  softDeleteBy?: AuditUser;
-  softDeleted?: boolean;
-  uuid?: string;
-  key?: string;
-  version?: string;
-  label?: string;
-  description?: string;
-  type?: string;
-  inputType?: string;
-  formula?: string;
-  inputOrderPosition?: number;
-  processingOrderPosition?: number;
-  viewOrderPosition?: number;
-  values?: AggregateUUPropertyValue[];
-  files?: AggregateUUFile[];
-}
-
-/**
  * Aggregate address entity with metadata
  */
 export interface AggregateUUAddress {

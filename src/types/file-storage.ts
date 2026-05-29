@@ -157,28 +157,28 @@ export interface PreviewUrlResponseDTO {
 }
 
 // ----------------------------------------------------------------------------
-// SDK-internal aliases (back-compat exports). The orchestrator uses these
-// names so call-site renames are kept to a minimum on consumers.
+// SDK-internal aliases. The orchestrator/consumers use these names so call-site
+// renames are kept to a minimum.
 // ----------------------------------------------------------------------------
 
-export type InitUploadRequest = FileStorageInitDTO;
-export type InitUploadResponse = FileStorageInitResponseDTO;
-export type RefreshUrlsRequest = FileStorageRefreshDTO;
 export type CompletedPart = PartETag;
-export type CompleteUploadRequest = FileStorageCompleteDTO;
-export type CompleteUploadResponse = FileStorageCompleteResponseDTO;
-export type FileMetadata = FileMetadataResponseDTO;
 export type PreviewUrlResponse = PreviewUrlResponseDTO;
 
 /**
- * URL of `GET /api/FileStorage/{fileReference}/download` — unauthenticated
- * endpoint that 302-redirects to a presigned S3 URL with
- * `Content-Disposition: attachment` baked in. The SDK builds this synchronously;
- * the browser navigates and S3 serves the download.
+ * Response from `GET /api/FileStorage/{fileReference}/download`.
+ *
+ * An authenticated GET (the SDK attaches the JWT) returns this JSON — a
+ * presigned S3 URL with `Content-Disposition: attachment` baked in by the
+ * server. The consumer navigates the browser to `url`; the JWT never reaches
+ * S3. Shape mirrors `PreviewUrlResponseDTO`.
  */
-export interface DownloadUrlResponse {
+export interface DownloadUrlResponseDTO {
   url: string;
+  /** ISO-8601. */
+  expiresAt: string;
 }
+
+export type DownloadUrlResponse = DownloadUrlResponseDTO;
 
 /**
  * Typed errors thrown by `FileStorageServiceClient`. Map RFC 7807 ProblemDetails

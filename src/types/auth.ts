@@ -2,13 +2,6 @@
  * Authentication-related types
  */
 
-// JWT Token interface for authentication
-export interface JWTToken {
-  token: string;
-  expiresAt: Date;
-  issuedAt: Date;
-}
-
 // JWT Authentication response from auth service
 export interface JWTAuthResponse {
   token: string;
@@ -16,22 +9,6 @@ export interface JWTAuthResponse {
   tokenType: string; // typically "Bearer"
   user?: AuthResponse;
   refreshToken: string; // refresh token for token renewal
-}
-
-// Token refresh configuration
-export interface TokenRefreshConfig {
-  refreshThresholdMinutes?: number; // Default: 5 minutes before expiry
-  maxRetries?: number; // Default: 3
-  retryDelayMs?: number; // Default: 1000ms
-}
-
-// Authentication state for token management
-export interface AuthState {
-  token?: JWTToken;
-  user?: AuthResponse;
-  isAuthenticated: boolean;
-  isRefreshing: boolean;
-  lastAuthError?: string;
 }
 
 /**
@@ -76,16 +53,6 @@ export interface AuthRefreshTokenResponse {
  */
 export interface RefreshTokenRequest {
   refreshToken: string;
-}
-
-/**
- * Refresh token error response (403 when expired)
- */
-export interface RefreshTokenError {
-  detail: string;
-  status: number;
-  title: string;
-  errors: Record<string, any>;
 }
 
 /**

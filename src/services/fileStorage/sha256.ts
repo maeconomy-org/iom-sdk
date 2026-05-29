@@ -2,7 +2,7 @@
  * Streaming SHA-256 for file uploads.
  *
  * Two output encodings are needed:
- *   - **hex** for the full-file `sha256` field in `InitUploadRequest`.
+ *   - **hex** for the full-file `sha256` field in `FileStorageInitDTO`.
  *   - **base64** for the per-part `x-amz-checksum-sha256` header that S3
  *     validates against during PUT.
  *
