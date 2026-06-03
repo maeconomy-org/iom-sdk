@@ -232,9 +232,13 @@ export class FileStorageServiceClient {
     );
     const resolvedName =
       fileName ?? (file instanceof File ? file.name : 'file');
+    // `File.type` is '' for extensions the OS doesn't recognise (e.g. .gcode,
+    // .stl). Treat empty/whitespace as missing — an empty mimeType is rejected
+    // by the FileStorage `init` endpoint. `||` (not `??`) so '' falls through.
     const resolvedType =
-      contentType ??
-      (file instanceof File ? file.type : 'application/octet-stream');
+      (contentType && contentType.trim()) ||
+      (file instanceof File ? file.type.trim() : '') ||
+      'application/octet-stream';
     const hasher = this.hasherFactory();
     const progress = createProgressEmitter(file.size, onProgress);
     // Tracked outside the try so the catch can fire DELETE /api/FileStorage/{uploadId}
