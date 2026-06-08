@@ -53,7 +53,7 @@ echo "✅ New version: v$NEW_VERSION"
 
 # Commit the version change and create tag
 echo "📝 Committing version change..."
-git add package.json pnpm-lock.json 2>/dev/null || git add package.json
+git add package.json pnpm-lock.yaml
 git commit -m "chore: bump version to v$NEW_VERSION"
 
 echo "🏷️ Creating git tag..."
